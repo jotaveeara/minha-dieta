@@ -4,7 +4,7 @@
    em segundo plano. Funciona 100% offline após a 1ª visita.
    ========================================================= */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 
 // Caminhos relativos ao escopo do service worker — funciona tanto
@@ -16,13 +16,8 @@ const APP_SHELL = [
   "./style.css",
   "./script.js",
   "./manifest.json",
-  "./icons/icon-120.png",
-  "./icons/icon-152.png",
-  "./icons/icon-167.png",
-  "./icons/icon-180.png",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-1024.png"
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {

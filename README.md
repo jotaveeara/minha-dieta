@@ -8,11 +8,11 @@ App pessoal de dieta, treino e evolução física. PWA instalável no iPhone.
 - `script.js` — toda a lógica (rotina por dia da semana, checklist, água, substituições, peso, fotos, backup)
 - `manifest.json` — configuração da instalação como app
 - `sw.js` — service worker, permite abrir offline depois da 1ª visita
-- `icons/` — ícones em vários tamanhos (usados no manifest e na tela inicial do iPhone)
+- `icon-192.png` e `icon-512.png` — ícones usados no manifest e na tela inicial
 
 ## Como publicar no GitHub Pages
 1. Crie um repositório novo no GitHub (ex: `rotina-joao`).
-2. Envie todos os arquivos desta pasta para a raiz do repositório (mantendo a pasta `icons/`).
+2. Envie todos os arquivos desta pasta para a raiz do repositório.
 3. No repositório, vá em **Settings → Pages**, escolha a branch `main` e a pasta `/root`, salve.
 4. Aguarde alguns minutos — o GitHub mostrará o link, algo como `https://seu-usuario.github.io/rotina-joao/`.
 

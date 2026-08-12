@@ -456,7 +456,11 @@ const ICON_CHECK = '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M4 
    11. RENDER — HOJE
 --------------------------------------------------------- */
 function daysBetween(a, b) {
-  const ms = new Date(isoFromDate(b) + "T00:00:00") - new Date(isoFromDate(a) + "T00:00:00");
+  const toLocalDate = (value) => {
+    if (value instanceof Date) return new Date(isoFromDate(value) + "T00:00:00");
+    return new Date(String(value).slice(0, 10) + "T00:00:00");
+  };
+  const ms = toLocalDate(b) - toLocalDate(a);
   return Math.round(ms / 86400000);
 }
 
