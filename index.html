@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Rotina — João</title>
+
+<!-- PWA / iOS -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0E1013">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rotina">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-text">
+        <p class="eyebrow" id="header-day-label">—</p>
+        <h1 id="header-greeting">Olá</h1>
+      </div>
+      <button class="icon-btn" id="btn-settings-shortcut" aria-label="Perfil">
+        <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.4-4 4.2-6 7.5-6s6.1 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== VIEW: HOJE ===================== -->
+  <main class="view" id="view-hoje" data-view="hoje">
+
+    <section class="project-strip" id="project-strip">
+      <div class="project-strip-item">
+        <span class="ps-value" id="ps-day-count">—</span>
+        <span class="ps-label">dia do projeto</span>
+      </div>
+      <div class="project-strip-div"></div>
+      <div class="project-strip-item">
+        <span class="ps-value">fev/2027</span>
+        <span class="ps-label">meta — barriga chapada</span>
+      </div>
+    </section>
+
+    <section class="monday-toggle" id="monday-toggle" hidden>
+      <p class="mt-question">Hoje tem aula presencial?</p>
+      <div class="mt-buttons">
+        <button class="mt-btn" data-answer="sim" id="mt-sim">Sim</button>
+        <button class="mt-btn" data-answer="nao" id="mt-nao">Não</button>
+      </div>
+    </section>
+
+    <section class="sleep-alert" id="sleep-alert" hidden>
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <p id="sleep-alert-text">Seu sono hoje está abaixo do ideal para recuperação muscular.</p>
+    </section>
+
+    <section class="macro-cards">
+      <div class="macro-card" id="card-kcal">
+        <span class="mc-label">Calorias</span>
+        <span class="mc-value"><b id="kcal-atual">0</b><i>/ <span id="kcal-meta">2500</span> kcal</i></span>
+        <div class="mc-bar"><div class="mc-bar-fill" id="kcal-bar"></div></div>
+      </div>
+      <div class="macro-card" id="card-proteina">
+        <span class="mc-label">Proteína</span>
+        <span class="mc-value"><b id="proteina-atual">0</b><i>/ <span id="proteina-meta">175</span> g</i></span>
+        <div class="mc-bar"><div class="mc-bar-fill" id="proteina-bar"></div></div>
+      </div>
+      <div class="macro-card" id="card-agua">
+        <span class="mc-label">Água</span>
+        <span class="mc-value"><b id="agua-atual">0,0</b><i>/ <span id="agua-meta">3,0</span> L</i></span>
+        <div class="mc-bar"><div class="mc-bar-fill" id="agua-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="water-control">
+      <div class="water-control-row">
+        <span>Água de hoje</span>
+        <span class="water-current" id="water-current-label">2,25 / 3,00 L</span>
+      </div>
+      <div class="water-bar-lg"><div class="water-bar-lg-fill" id="water-bar-lg"></div></div>
+      <div class="water-buttons">
+        <button class="water-btn" data-ml="250">+250 ml</button>
+        <button class="water-btn" data-ml="500">+500 ml</button>
+        <button class="water-btn ghost" id="water-reset">reiniciar</button>
+      </div>
+    </section>
+
+    <section class="checklist-block">
+      <h2 class="section-title">Hoje</h2>
+      <ul class="checklist" id="checklist-hoje"></ul>
+    </section>
+
+    <section class="timeline-block">
+      <h2 class="section-title">Cronograma de hoje</h2>
+      <div class="timeline" id="timeline-hoje"></div>
+    </section>
+
+  </main>
+
+  <!-- ===================== VIEW: SEMANA ===================== -->
+  <main class="view" id="view-semana" data-view="semana" hidden>
+    <h1 class="view-title">Semana</h1>
+    <p class="view-subtitle">Segunda a sexta = treino. Fins de semana = descanso.</p>
+
+    <div class="week-grid" id="week-grid"></div>
+
+    <section class="freemeal-block">
+      <h2 class="section-title">Refeição livre</h2>
+      <p class="freemeal-desc">Você pode marcar <b>1 refeição</b> por semana como livre — não é um dia inteiro livre. Depois dela, volte à dieta normalmente, sem compensar ou pular refeições.</p>
+      <div class="freemeal-status" id="freemeal-status"></div>
+    </section>
+  </main>
+
+  <!-- ===================== VIEW: EVOLUÇÃO ===================== -->
+  <main class="view" id="view-evolucao" data-view="evolucao" hidden>
+    <h1 class="view-title">Evolução</h1>
+
+    <div class="evo-summary">
+      <div class="evo-summary-item">
+        <span class="es-value" id="evo-peso-inicial">90 kg</span>
+        <span class="es-label">peso inicial</span>
+      </div>
+      <div class="evo-summary-item">
+        <span class="es-value" id="evo-peso-atual">—</span>
+        <span class="es-label">peso atual</span>
+      </div>
+      <div class="evo-summary-item">
+        <span class="es-value" id="evo-peso-delta">—</span>
+        <span class="es-label">variação</span>
+      </div>
+    </div>
+
+    <canvas id="chart-peso" width="600" height="240" class="chart-canvas"></canvas>
+    <p class="chart-hint" id="chart-hint">Registre seu peso para ver o gráfico de evolução.</p>
+
+    <form class="evo-form" id="form-peso">
+      <h2 class="section-title">Novo registro</h2>
+      <div class="evo-form-grid">
+        <label>Data
+          <input type="date" name="data" required>
+        </label>
+        <label>Peso (kg)
+          <input type="number" name="peso" step="0.1" min="0" required>
+        </label>
+        <label>Cintura (cm)
+          <input type="number" name="cintura" step="0.1" min="0">
+        </label>
+        <label>Braço (cm)
+          <input type="number" name="braco" step="0.1" min="0">
+        </label>
+      </div>
+      <label class="evo-obs">Observação
+        <textarea name="obs" rows="2" placeholder="opcional"></textarea>
+      </label>
+      <button type="submit" class="btn-primary">Salvar registro</button>
+    </form>
+
+    <section class="evo-history">
+      <h2 class="section-title">Histórico</h2>
+      <ul class="evo-list" id="evo-list"></ul>
+    </section>
+
+    <section class="progresso-fotos">
+      <h2 class="section-title">Progresso — fotos</h2>
+      <p class="fotos-desc" id="fotos-desc">Carregando...</p>
+      <input type="file" id="foto-input" accept="image/*" hidden>
+      <button class="btn-secondary" id="btn-add-foto">Adicionar foto</button>
+      <div class="fotos-grid" id="fotos-grid"></div>
+    </section>
+  </main>
+
+  <!-- ===================== VIEW: PERFIL ===================== -->
+  <main class="view" id="view-perfil" data-view="perfil" hidden>
+    <h1 class="view-title">Perfil</h1>
+
+    <section class="profile-block">
+      <h2 class="section-title">Meus dados</h2>
+      <div class="profile-grid">
+        <div><span>Nome</span><b id="p-nome">João</b></div>
+        <div><span>Idade</span><b id="p-idade">20 anos</b></div>
+        <div><span>Altura</span><b>1,90 m</b></div>
+        <div><span>Peso inicial</span><b>90 kg</b></div>
+        <div><span>Início dos treinos</span><b>28/08/2026</b></div>
+        <div><span>Meta</span><b>fev/2027</b></div>
+      </div>
+      <p class="profile-goal">Objetivo: perder gordura abdominal e ganhar massa muscular (principalmente braços), buscando a barriga mais chapada até fevereiro de 2027.</p>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Meta nutricional inicial (ajustável)</h2>
+      <p class="settings-hint">Estes números são uma referência inicial, não uma prescrição médica.</p>
+      <form id="form-metas" class="settings-form">
+        <label>Calorias (kcal/dia)
+          <input type="number" name="kcal" min="0" step="10">
+        </label>
+        <label>Proteína mínima (g)
+          <input type="number" name="proteinaMin" min="0" step="1">
+        </label>
+        <label>Proteína máxima (g)
+          <input type="number" name="proteinaMax" min="0" step="1">
+        </label>
+        <label>Gordura (g)
+          <input type="number" name="gordura" min="0" step="1">
+        </label>
+        <label>Água (L/dia)
+          <input type="number" name="aguaMeta" min="0" step="0.1">
+        </label>
+        <button type="submit" class="btn-primary">Salvar metas</button>
+      </form>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Horário da faculdade — segunda-feira (quando houver aula)</h2>
+      <form id="form-segunda" class="settings-form">
+        <label>Início
+          <input type="time" name="inicio">
+        </label>
+        <label>Fim
+          <input type="time" name="fim">
+        </label>
+        <button type="submit" class="btn-primary">Salvar horário</button>
+      </form>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Fim de semana</h2>
+      <label class="toggle-row">
+        <span>Reduzir levemente carboidratos/calorias no fim de semana</span>
+        <input type="checkbox" id="toggle-reduzir-fds">
+      </label>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Backup dos dados</h2>
+      <p class="settings-hint">Exporte periodicamente — útil se você trocar de celular. Fotos não entram no arquivo por serem grandes; ficam salvas só neste aparelho.</p>
+      <div class="backup-buttons">
+        <button class="btn-secondary" id="btn-export">Exportar dados (JSON)</button>
+        <button class="btn-secondary" id="btn-import">Importar backup</button>
+        <input type="file" id="import-input" accept="application/json" hidden>
+      </div>
+      <p class="backup-status" id="backup-status"></p>
+    </section>
+
+    <section class="settings-block danger-block">
+      <h2 class="section-title">Zona de risco</h2>
+      <button class="btn-danger" id="btn-reset-all">Apagar todos os dados deste aparelho</button>
+    </section>
+
+    <p class="app-version">Rotina — João · v1.0</p>
+  </main>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-target="hoje">
+      <svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Hoje</span>
+    </button>
+    <button class="nav-btn" data-target="semana">
+      <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Semana</span>
+    </button>
+    <button class="nav-btn" data-target="evolucao">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 17l4.5-5.5 3.5 3L19 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 6H19v4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Evolução</span>
+    </button>
+    <button class="nav-btn" data-target="perfil">
+      <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 20c1.4-4 4.2-6 7.5-6s6.1 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ===================== MODAL: SUBSTITUIR ===================== -->
+<div class="modal-overlay" id="modal-substituir" hidden>
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="modal-substituir-title">Substituir</h3>
+    <div class="modal-options" id="modal-substituir-options"></div>
+    <button class="btn-secondary" id="modal-substituir-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="script.js"></script>
+</body>
+</html>
