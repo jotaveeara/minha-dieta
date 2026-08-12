@@ -721,6 +721,42 @@ document.getElementById("modal-substituir").addEventListener("click", (e) => {
 --------------------------------------------------------- */
 let editingFoodId = null;
 
+// Valores por 100 g. Fonte principal: TACO/NEPA-Unicamp, 4ª edição.
+const FOOD_PRESETS = [
+  { nome: "Arroz branco cozido", kcal: 128, proteina: 2.5 },
+  { nome: "Arroz integral cozido", kcal: 124, proteina: 2.6 },
+  { nome: "Feijão carioca cozido", kcal: 76, proteina: 4.8 },
+  { nome: "Feijão preto cozido", kcal: 77, proteina: 4.5 },
+  { nome: "Peito de frango sem pele grelhado", kcal: 159, proteina: 32.0 },
+  { nome: "Patinho sem gordura grelhado", kcal: 219, proteina: 35.9 },
+  { nome: "Carne bovina moída cozida (acém)", kcal: 212, proteina: 26.7 },
+  { nome: "Tilápia grelhada", kcal: 128, proteina: 26.0 },
+  { nome: "Ovo de galinha cozido", kcal: 146, proteina: 13.3 },
+  { nome: "Batata-doce cozida", kcal: 77, proteina: 0.6 },
+  { nome: "Mandioca cozida", kcal: 125, proteina: 0.6 },
+  { nome: "Aveia em flocos crua", kcal: 394, proteina: 13.9 },
+  { nome: "Pão de forma integral", kcal: 253, proteina: 9.4 },
+  { nome: "Leite integral", kcal: 61, proteina: 2.9 },
+  { nome: "Iogurte natural", kcal: 51, proteina: 4.1 },
+  { nome: "Banana-prata crua", kcal: 98, proteina: 1.3 },
+  { nome: "Maçã Fuji com casca", kcal: 56, proteina: 0.3 },
+  { nome: "Mamão Formosa cru", kcal: 45, proteina: 0.8 },
+  { nome: "Laranja-pera crua", kcal: 37, proteina: 1.0 },
+  { nome: "Brócolis cozido", kcal: 25, proteina: 2.1 },
+  { nome: "Cenoura cozida", kcal: 30, proteina: 0.8 },
+  { nome: "Tomate cru", kcal: 15, proteina: 1.1 }
+];
+
+function initFoodPresets() {
+  const select = document.getElementById("food-preset");
+  FOOD_PRESETS.forEach((food, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = food.nome;
+    select.appendChild(option);
+  });
+}
+
 function getFoodLogForDate(iso) {
   if (!state.foodLog) state.foodLog = {};
   if (!state.foodLog[iso]) state.foodLog[iso] = [];
@@ -791,6 +827,8 @@ function openFoodModal(item = null) {
   editingFoodId = item ? item.id : null;
   const form = document.getElementById("form-food");
   form.reset();
+  document.getElementById("food-preset").value = "";
+  document.getElementById("food-manual-values").open = false;
   document.getElementById("food-search-results").innerHTML = "";
   document.getElementById("food-search-status").textContent = "Pesquise na base Open Food Facts ou informe os valores manualmente.";
   document.getElementById("modal-food-title").textContent = item ? "Editar alimento" : "Adicionar alimento";
@@ -810,6 +848,16 @@ function closeFoodModal() {
 }
 
 document.getElementById("btn-add-food").addEventListener("click", () => openFoodModal());
+document.getElementById("food-preset").addEventListener("change", (e) => {
+  if (e.target.value === "") return;
+  const food = FOOD_PRESETS[Number(e.target.value)];
+  document.getElementById("food-name").value = food.nome;
+  document.getElementById("food-kcal100").value = food.kcal;
+  document.getElementById("food-protein100").value = food.proteina;
+  document.getElementById("food-search-results").innerHTML = "";
+  document.getElementById("food-search-status").textContent = "Valores preenchidos pela tabela TACO. Agora informe somente o peso consumido.";
+  updateFoodPreview();
+});
 document.getElementById("modal-food-cancel").addEventListener("click", closeFoodModal);
 document.getElementById("modal-food").addEventListener("click", (e) => {
   if (e.target.id === "modal-food") closeFoodModal();
@@ -1373,6 +1421,7 @@ if ("serviceWorker" in navigator) {
    20. INIT
 --------------------------------------------------------- */
 function init() {
+  initFoodPresets();
   const dateInput = document.querySelector('#form-peso input[name="data"]');
   if (dateInput) dateInput.value = todayISO();
   renderHoje();
