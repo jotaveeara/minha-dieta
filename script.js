@@ -34,6 +34,7 @@ const DEFAULT_STATE = {
   substitutions: {},         // { "2026-08-17": { "meal_almoco": "patinho" } }
   freeMealUse: {},           // { "2026-w34": { data:"2026-08-17", eventId:"meal_jantar" } }
   water: {},                 // { "2026-08-17": 1500 } (ml)
+  foodLog: {},               // { "2026-08-17": [{id,nome,gramas,kcal100,proteina100,fonte}] }
   weightLog: [],             // [{id,data,peso,cintura,braco,obs}]
   createdAt: todayISO()
 };
@@ -230,8 +231,6 @@ function gerarDiaSemFaculdade() {
       mkLembrete({ id: "lembrete_pretreino", time: "13:30", title: "Preparação para o treino", desc: "Hidrate-se e evite uma refeição muito pesada imediatamente antes do treino." }),
       mkTreino({ id: "treino", time: "14:00", title: "Academia", desc: "Treino de 14:00 até 15:00." }),
       posTreino("meal_postreino", "15:10"),
-      maca("meal_maca1", "18:30", 1),
-      maca("meal_maca2", "21:00", 2),
       jantar("meal_jantar", "22:30"),
       ceia("meal_ceia", "00:30"),
       mkLembrete({ id: "fim_trabalho", time: "02:00", title: "Fim do trabalho", desc: "Finalizar o dia, evitar ficar beliscando e preparar-se para dormir." }),
@@ -251,8 +250,6 @@ function gerarDiaFaculdadeGenerico(inicio, fim) {
       refeicaoPrincipal("meal_almoco", fim, "Almoço (após a faculdade)"),
       mkTreino({ id: "treino", time: "após o almoço", title: "Academia", desc: "Horário configurável conforme o fim da aula. Mantenha o treino antes das 16:00 sempre que possível." }),
       posTreino("meal_postreino", "15:00"),
-      maca("meal_maca1", "18:30", 1),
-      maca("meal_maca2", "21:00", 2),
       jantar("meal_jantar", "22:30"),
       ceia("meal_ceia", "00:30"),
       mkLembrete({ id: "fim_trabalho", time: "02:00", title: "Fim do trabalho", desc: "Finalizar o dia, evitar ficar beliscando e preparar-se para dormir." }),
@@ -274,8 +271,6 @@ function gerarDiaTerQuaQui() {
       mkTreino({ id: "treino", time: "12:00–13:15", title: "Academia", desc: "" }),
       posTreino("meal_postreino", "13:30–14:00"),
       mkLembrete({ id: "inicio_trabalho", time: "16:00", title: "Início do trabalho", desc: "" }),
-      maca("meal_maca1", "18:30", 1),
-      maca("meal_maca2", "21:00", 2),
       jantar("meal_jantar", "22:30"),
       ceia("meal_ceia", "00:30"),
       mkLembrete({ id: "fim_trabalho", time: "02:00", title: "Fim do trabalho", desc: "" }),
@@ -295,8 +290,6 @@ function gerarDiaSexta() {
       mkTreino({ id: "treino", time: "13:30–14:45", title: "Academia", desc: "" }),
       posTreino("meal_postreino", "15:00"),
       mkLembrete({ id: "inicio_trabalho", time: "16:00", title: "Início do trabalho", desc: "" }),
-      maca("meal_maca1", "18:30", 1),
-      maca("meal_maca2", "21:00", 2),
       jantar("meal_jantar", "22:30"),
       ceia("meal_ceia", "00:30"),
       mkLembrete({ id: "fim_trabalho", time: "02:00", title: "Fim do trabalho", desc: "" }),
@@ -315,8 +308,6 @@ function gerarDiaDescanso(reduzir) {
       mkLembrete({ id: "descanso_info", time: "—", title: "Dia de descanso da academia", desc: "Sem treino hoje. Mantenha a proteína praticamente igual à dos outros dias" + nota + "." }),
       refeicaoPrincipal("meal_almoco", "12:00", "Almoço"),
       posTreino("meal_lanche_tarde", "16:00"),
-      maca("meal_maca1", "18:30", 1),
-      maca("meal_maca2", "21:00", 2),
       jantar("meal_jantar", "20:30"),
       ceia("meal_ceia", "23:00")
     ]
@@ -405,6 +396,11 @@ function calcDayTotals(dateObj) {
       kcal += m.kcal;
       proteina += m.proteina;
     }
+  });
+  getFoodLogForDate(iso).forEach(item => {
+    const factor = Number(item.gramas) / 100;
+    kcal += Number(item.kcal100) * factor;
+    proteina += Number(item.proteina100) * factor;
   });
   return { kcal: Math.round(kcal), proteina: Math.round(proteina) };
 }
@@ -521,6 +517,8 @@ function renderHoje() {
   document.getElementById("water-current-label").textContent =
     `${(waterMl / 1000).toFixed(2).replace(".", ",")} / ${(waterMeta / 1000).toFixed(2).replace(".", ",")} L`;
   document.getElementById("water-bar-lg").style.width = Math.min(100, (waterMl / waterMeta) * 100) + "%";
+
+  renderFoodLog(iso);
 
   // checklist rápido
   renderChecklist(plan, iso);
@@ -716,6 +714,182 @@ document.getElementById("modal-substituir-cancel").addEventListener("click", () 
 });
 document.getElementById("modal-substituir").addEventListener("click", (e) => {
   if (e.target.id === "modal-substituir") e.currentTarget.hidden = true;
+});
+
+/* ---------------------------------------------------------
+   12B. REGISTRO LIVRE DE ALIMENTOS
+--------------------------------------------------------- */
+let editingFoodId = null;
+
+function getFoodLogForDate(iso) {
+  if (!state.foodLog) state.foodLog = {};
+  if (!state.foodLog[iso]) state.foodLog[iso] = [];
+  return state.foodLog[iso];
+}
+
+function foodTotals(item) {
+  const factor = Number(item.gramas) / 100;
+  return {
+    kcal: Math.round(Number(item.kcal100) * factor),
+    proteina: Math.round(Number(item.proteina100) * factor * 10) / 10
+  };
+}
+
+function renderFoodLog(iso) {
+  const list = document.getElementById("food-log-list");
+  const empty = document.getElementById("food-log-empty");
+  const foods = getFoodLogForDate(iso);
+  list.innerHTML = "";
+  empty.hidden = foods.length > 0;
+  foods.forEach(item => {
+    const totals = foodTotals(item);
+    const row = document.createElement("div");
+    row.className = "food-entry";
+    const main = document.createElement("div");
+    main.className = "food-entry-main";
+    const name = document.createElement("span");
+    name.className = "food-entry-name";
+    name.textContent = item.nome;
+    const info = document.createElement("p");
+    info.className = "food-entry-info";
+    info.textContent = `${Number(item.gramas).toLocaleString("pt-BR")} g · ${totals.kcal} kcal · ${String(totals.proteina).replace(".", ",")} g proteína`;
+    main.append(name, info);
+    const actions = document.createElement("div");
+    actions.className = "food-entry-actions";
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "Editar";
+    edit.addEventListener("click", () => openFoodModal(item));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Excluir";
+    remove.addEventListener("click", () => {
+      state.foodLog[iso] = foods.filter(food => food.id !== item.id);
+      saveState();
+      renderHoje();
+    });
+    actions.append(edit, remove);
+    row.append(main, actions);
+    list.appendChild(row);
+  });
+}
+
+function updateFoodPreview() {
+  const grams = Number(document.getElementById("food-grams").value);
+  const kcal100 = Number(document.getElementById("food-kcal100").value);
+  const protein100 = Number(document.getElementById("food-protein100").value);
+  const preview = document.getElementById("food-preview");
+  if (!(grams > 0) || kcal100 < 0 || protein100 < 0 || !document.getElementById("food-kcal100").value || !document.getElementById("food-protein100").value) {
+    preview.textContent = "Informe o peso e os valores nutricionais.";
+    return;
+  }
+  const factor = grams / 100;
+  preview.textContent = `${Math.round(kcal100 * factor)} kcal · ${(protein100 * factor).toFixed(1).replace(".", ",")} g de proteína`;
+}
+
+function openFoodModal(item = null) {
+  editingFoodId = item ? item.id : null;
+  const form = document.getElementById("form-food");
+  form.reset();
+  document.getElementById("food-search-results").innerHTML = "";
+  document.getElementById("food-search-status").textContent = "Pesquise na base Open Food Facts ou informe os valores manualmente.";
+  document.getElementById("modal-food-title").textContent = item ? "Editar alimento" : "Adicionar alimento";
+  if (item) {
+    document.getElementById("food-name").value = item.nome;
+    document.getElementById("food-grams").value = item.gramas;
+    document.getElementById("food-kcal100").value = item.kcal100;
+    document.getElementById("food-protein100").value = item.proteina100;
+  }
+  updateFoodPreview();
+  document.getElementById("modal-food").hidden = false;
+}
+
+function closeFoodModal() {
+  document.getElementById("modal-food").hidden = true;
+  editingFoodId = null;
+}
+
+document.getElementById("btn-add-food").addEventListener("click", () => openFoodModal());
+document.getElementById("modal-food-cancel").addEventListener("click", closeFoodModal);
+document.getElementById("modal-food").addEventListener("click", (e) => {
+  if (e.target.id === "modal-food") closeFoodModal();
+});
+["food-grams", "food-kcal100", "food-protein100"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updateFoodPreview);
+});
+
+document.getElementById("food-search").addEventListener("click", async () => {
+  const query = document.getElementById("food-name").value.trim();
+  const status = document.getElementById("food-search-status");
+  const results = document.getElementById("food-search-results");
+  if (query.length < 2) {
+    status.textContent = "Digite pelo menos 2 letras para pesquisar.";
+    return;
+  }
+  status.textContent = "Consultando a base nutricional…";
+  results.innerHTML = "";
+  try {
+    const params = new URLSearchParams({
+      search_terms: query, search_simple: "1", action: "process", json: "1",
+      page_size: "12", fields: "code,product_name,brands,nutriments"
+    });
+    const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
+    if (!response.ok) throw new Error("Falha na consulta");
+    const data = await response.json();
+    const products = (data.products || []).map(product => {
+      const n = product.nutriments || {};
+      const kcal = Number(n["energy-kcal_100g"] ?? (Number(n["energy-kj_100g"]) / 4.184));
+      const protein = Number(n.proteins_100g);
+      return { nome: product.product_name || query, marca: product.brands || "", kcal, protein };
+    }).filter(p => Number.isFinite(p.kcal) && Number.isFinite(p.protein));
+    if (!products.length) {
+      status.textContent = "Nenhum resultado completo. Informe os valores do rótulo manualmente.";
+      return;
+    }
+    status.textContent = "Selecione o resultado correspondente ao alimento consumido:";
+    products.forEach(product => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "food-result";
+      const title = document.createElement("span");
+      title.textContent = product.marca ? `${product.nome} — ${product.marca}` : product.nome;
+      const nutrition = document.createElement("small");
+      nutrition.textContent = `${Math.round(product.kcal)} kcal · ${product.protein.toFixed(1).replace(".", ",")} g proteína por 100 g`;
+      button.append(title, nutrition);
+      button.addEventListener("click", () => {
+        document.getElementById("food-name").value = product.marca ? `${product.nome} — ${product.marca}` : product.nome;
+        document.getElementById("food-kcal100").value = product.kcal.toFixed(1);
+        document.getElementById("food-protein100").value = product.protein.toFixed(1);
+        results.innerHTML = "";
+        status.textContent = "Valores preenchidos pela Open Food Facts. Confira o produto antes de salvar.";
+        updateFoodPreview();
+      });
+      results.appendChild(button);
+    });
+  } catch (error) {
+    status.textContent = "Consulta indisponível. Você ainda pode informar os valores do rótulo manualmente.";
+  }
+});
+
+document.getElementById("form-food").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const iso = todayISO();
+  const item = {
+    id: editingFoodId || `food_${Date.now()}`,
+    nome: document.getElementById("food-name").value.trim(),
+    gramas: Number(document.getElementById("food-grams").value),
+    kcal100: Number(document.getElementById("food-kcal100").value),
+    proteina100: Number(document.getElementById("food-protein100").value),
+    fonte: "Open Food Facts / rótulo"
+  };
+  const foods = getFoodLogForDate(iso);
+  const index = foods.findIndex(food => food.id === editingFoodId);
+  if (index >= 0) foods[index] = item;
+  else foods.push(item);
+  saveState();
+  closeFoodModal();
+  renderHoje();
+  showToast("Alimento salvo e somado às metas.");
 });
 
 /* ---------------------------------------------------------

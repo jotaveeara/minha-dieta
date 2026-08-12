@@ -93,6 +93,15 @@
       </div>
     </section>
 
+    <section class="food-log-block">
+      <div class="section-heading-row">
+        <h2 class="section-title">Alimentos de hoje</h2>
+        <button class="food-add-btn" id="btn-add-food">+ Adicionar</button>
+      </div>
+      <div class="food-log-list" id="food-log-list"></div>
+      <p class="food-log-empty" id="food-log-empty">Nenhum alimento registrado.</p>
+    </section>
+
     <section class="checklist-block">
       <h2 class="section-title">Hoje</h2>
       <ul class="checklist" id="checklist-hoje"></ul>
@@ -286,6 +295,38 @@
     <h3 id="modal-substituir-title">Substituir</h3>
     <div class="modal-options" id="modal-substituir-options"></div>
     <button class="btn-secondary" id="modal-substituir-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ALIMENTO ===================== -->
+<div class="modal-overlay" id="modal-food" hidden>
+  <div class="modal-sheet food-modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="modal-food-title">Adicionar alimento</h3>
+    <form id="form-food" class="food-form">
+      <label>Alimento
+        <div class="food-search-row">
+          <input type="text" name="nome" id="food-name" placeholder="Ex.: arroz, banana, iogurte" required>
+          <button type="button" class="food-search-btn" id="food-search">Buscar</button>
+        </div>
+      </label>
+      <p class="food-search-status" id="food-search-status">Pesquise na base Open Food Facts ou informe os valores manualmente.</p>
+      <div class="food-search-results" id="food-search-results"></div>
+      <div class="food-form-grid">
+        <label>Peso consumido (g)
+          <input type="number" name="gramas" id="food-grams" min="0.1" step="0.1" required>
+        </label>
+        <label>Calorias por 100 g
+          <input type="number" name="kcal100" id="food-kcal100" min="0" step="0.1" required>
+        </label>
+        <label>Proteína por 100 g
+          <input type="number" name="proteina100" id="food-protein100" min="0" step="0.1" required>
+        </label>
+      </div>
+      <div class="food-preview" id="food-preview">Informe o peso e os valores nutricionais.</div>
+      <button class="btn-primary" type="submit">Salvar alimento</button>
+      <button class="btn-secondary" type="button" id="modal-food-cancel">Cancelar</button>
+    </form>
   </div>
 </div>
 
