@@ -78,9 +78,13 @@ function translateAuthError(message = "") {
   const text = message.toLowerCase();
   if (text.includes("invalid login")) return "E-mail ou senha incorretos.";
   if (text.includes("already registered")) return "Este e-mail já possui uma conta.";
-  if (text.includes("password")) return "A senha precisa ter pelo menos 6 caracteres.";
+  if (text.includes("password should be")) return "A senha não atende aos requisitos de segurança informados.";
   if (text.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
-  return "Não foi possível concluir. Verifique os dados e tente novamente.";
+  if (text.includes("rate limit")) return "Muitas tentativas foram feitas. Aguarde alguns minutos e tente novamente.";
+  if (text.includes("signup is disabled")) return "O cadastro está desativado nas configurações do Supabase.";
+  if (text.includes("invalid api key") || text.includes("api key")) return "A chave pública do Supabase não foi aceita.";
+  if (text.includes("database error")) return `O banco recusou a criação do perfil. Detalhe: ${message}`;
+  return `Não foi possível concluir. Detalhe: ${message || "erro desconhecido"}`;
 }
 
 async function loadUserData(user) {
