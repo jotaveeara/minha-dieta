@@ -37,6 +37,20 @@
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+:root[data-theme="ocean"] {
+  --bg-0: #071019; --bg-1: #0d1b27; --surface: #122330; --surface-2: #193141;
+  --surface-border: #28485c; --text: #edf7fc; --text-muted: #94adbd; --text-faint: #617b8b;
+  --amber: #52b9ed; --amber-dim: rgba(82,185,237,.16); --cyan: #65d5d0; --cyan-dim: rgba(101,213,208,.16);
+  --green: #78d5aa; --green-dim: rgba(120,213,170,.16); --coral: #ff7c78; --coral-dim: rgba(255,124,120,.14);
+}
+
+:root[data-theme="emerald"] {
+  --bg-0: #07100c; --bg-1: #0d1d16; --surface: #14251d; --surface-2: #1c3328;
+  --surface-border: #2d4c3c; --text: #f0f7f2; --text-muted: #9bb2a4; --text-faint: #657c6e;
+  --amber: #58cc8b; --amber-dim: rgba(88,204,139,.16); --cyan: #5bbfd1; --cyan-dim: rgba(91,191,209,.16);
+  --green: #a0d96e; --green-dim: rgba(160,217,110,.16); --coral: #f17970; --coral-dim: rgba(241,121,112,.14);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -606,6 +620,31 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--amber); out
 .profile-grid span { font-size: 11.5px; color: var(--text-muted); }
 .profile-grid b { font-size: 14px; font-weight: 700; }
 .profile-goal { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--surface-border); }
+.profile-identity { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid var(--surface-border); }
+.profile-avatar { position: relative; display: grid; place-items: center; width: 66px; height: 66px; overflow: hidden; border: 2px solid var(--amber); border-radius: 21px; background: var(--surface-2); color: var(--amber); font-size: 21px; font-weight: 800; }
+.profile-avatar img, .icon-btn img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-copy { min-width: 0; }
+.profile-avatar-copy h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
+.profile-avatar-copy span { display: block; margin-top: 4px; color: var(--text-muted); font-size: 10.5px; }
+.profile-avatar-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.profile-avatar-actions button { padding: 7px 8px; border: 1px solid var(--surface-border); border-radius: 8px; background: var(--surface-2); color: var(--amber); font-size: 10.5px; font-weight: 700; }
+.profile-avatar-actions button.remove { border: 0; background: transparent; color: var(--coral); }
+.avatar-status { min-height: 0; margin: 9px 0 0; color: var(--text-muted); font-size: 11px; }
+.profile-data-title { margin-top: 17px; }
+.icon-btn { overflow: hidden; }
+.icon-btn img { display: block; border-radius: inherit; }
+.theme-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.theme-picker > button { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 4px; padding: 9px; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-2); text-align: left; }
+.theme-picker > button.selected { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.theme-picker > button.selected::after { content: "✓"; position: absolute; top: 6px; right: 7px; color: var(--amber); font-size: 12px; font-weight: 900; }
+.theme-picker b { font-size: 11.5px; }
+.theme-picker small { color: var(--text-muted); font-size: 9px; }
+.theme-preview { display: flex; width: 100%; height: 26px; overflow: hidden; border-radius: 7px; }
+.theme-preview i { flex: 1; }
+.theme-preview.amber i:nth-child(1) { background: #0e1013; } .theme-preview.amber i:nth-child(2) { background: #e8a33d; } .theme-preview.amber i:nth-child(3) { background: #4fb6e8; }
+.theme-preview.ocean i:nth-child(1) { background: #071019; } .theme-preview.ocean i:nth-child(2) { background: #52b9ed; } .theme-preview.ocean i:nth-child(3) { background: #65d5d0; }
+.theme-preview.emerald i:nth-child(1) { background: #07100c; } .theme-preview.emerald i:nth-child(2) { background: #58cc8b; } .theme-preview.emerald i:nth-child(3) { background: #a0d96e; }
+@media (max-width: 410px) { .profile-identity { grid-template-columns: auto 1fr; } .profile-avatar-actions { grid-column: 1 / -1; width: 100%; flex-direction: row; } .profile-avatar-actions button { flex: 1; } }
 
 .settings-hint { font-size: 12.5px; color: var(--text-faint); margin: -2px 0 12px; line-height: 1.5; }
 .settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

@@ -186,6 +186,7 @@ async function loadUserData(user) {
   } else {
     await cloud.from("app_states").upsert({ user_id: user.id, state: activated.state });
   }
+  window.applyAppearanceTheme?.(state.appearance?.theme || "amber");
 
   if (profile) {
     const form = document.getElementById("form-account");
@@ -213,7 +214,7 @@ async function loadUserData(user) {
     showApp();
     renderHoje();
     renderPerfil();
-    await loadWorkoutFiles();
+    await Promise.all([loadWorkoutFiles(), refreshProfileAvatar()]);
     document.getElementById("sync-status").textContent = "Dados sincronizados com sua conta.";
   }
 }
@@ -370,7 +371,121 @@ document.getElementById("form-account").addEventListener("submit", async event =
   saveState();
   renderHoje();
   renderPerfil();
+  updateProfileAvatarIdentity();
   showToast("Perfil salvo.");
+});
+
+function profileInitials() {
+  const parts = String(state.profile?.nome || "Usuário").trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] || "U") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+function updateProfileAvatarIdentity() {
+  const name = state.profile?.nome || "Usuário";
+  document.getElementById("profile-display-name").textContent = name;
+  document.getElementById("profile-avatar-initials").textContent = profileInitials();
+}
+window.updateProfileAvatarIdentity = updateProfileAvatarIdentity;
+
+function setProfileAvatarUrl(url = "") {
+  const profileImage = document.getElementById("profile-avatar");
+  const initials = document.getElementById("profile-avatar-initials");
+  const headerImage = document.getElementById("header-avatar");
+  const headerPlaceholder = document.getElementById("header-avatar-placeholder");
+  const removeButton = document.getElementById("btn-remove-profile-avatar");
+  profileImage.src = url;
+  headerImage.src = url;
+  profileImage.hidden = !url;
+  headerImage.hidden = !url;
+  initials.hidden = !!url;
+  headerPlaceholder.hidden = !!url;
+  removeButton.hidden = !url;
+  updateProfileAvatarIdentity();
+}
+
+async function refreshProfileAvatar() {
+  const path = state.profile?.avatarPath;
+  if (!path || !currentUser) {
+    setProfileAvatarUrl("");
+    return;
+  }
+  const { data, error } = await cloud.storage.from("profile-avatars").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) {
+    setProfileAvatarUrl("");
+    document.getElementById("profile-avatar-status").textContent = "Não foi possível carregar a foto. Verifique a configuração do Supabase.";
+    return;
+  }
+  const signedUrl = data.signedUrl;
+  setProfileAvatarUrl(signedUrl.startsWith("data:") ? signedUrl : `${signedUrl}${signedUrl.includes("?") ? "&" : "?"}v=${Date.now()}`);
+  document.getElementById("profile-avatar-status").textContent = "Foto sincronizada com sua conta.";
+}
+
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Imagem inválida")); };
+    image.src = url;
+  });
+}
+
+async function compressProfileAvatar(file) {
+  const image = await loadImageFile(file);
+  const size = 512;
+  const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
+  const sourceX = Math.max(0, (image.naturalWidth - sourceSize) / 2);
+  const sourceY = Math.max(0, (image.naturalHeight - sourceSize) / 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#11161a";
+  context.fillRect(0, 0, size, size);
+  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+  return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Falha ao comprimir imagem")), "image/jpeg", 0.84));
+}
+
+document.getElementById("btn-profile-avatar").addEventListener("click", () => document.getElementById("profile-avatar-input").click());
+document.getElementById("profile-avatar-input").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  const status = document.getElementById("profile-avatar-status");
+  if (!/^image\//i.test(file.type)) return status.textContent = "Escolha um arquivo de imagem.";
+  if (file.size > 10485760) return status.textContent = "A imagem original deve ter no máximo 10 MB.";
+  status.textContent = "Preparando e enviando a foto…";
+  try {
+    const compressed = await compressProfileAvatar(file);
+    const path = `${currentUser.id}/avatar.jpg`;
+    const { error } = await cloud.storage.from("profile-avatars").upload(path, compressed, { contentType: "image/jpeg", upsert: true, cacheControl: "3600" });
+    if (error) throw error;
+    state.profile.avatarPath = path;
+    saveState();
+    await cloud.from("app_states").upsert({ user_id: currentUser.id, state, updated_at: new Date().toISOString() });
+    await refreshProfileAvatar();
+    showToast("Foto de perfil atualizada.");
+  } catch (error) {
+    console.error("Falha ao enviar foto de perfil", error);
+    status.textContent = /bucket|row-level|policy|not found/i.test(error.message || "")
+      ? "O armazenamento da foto ainda não foi configurado no Supabase."
+      : "Não foi possível enviar a foto. Tente novamente.";
+  }
+});
+
+document.getElementById("btn-remove-profile-avatar").addEventListener("click", async () => {
+  const path = state.profile?.avatarPath;
+  if (!path || !window.confirm("Remover sua foto de perfil?")) return;
+  const status = document.getElementById("profile-avatar-status");
+  status.textContent = "Removendo foto…";
+  const { error } = await cloud.storage.from("profile-avatars").remove([path]);
+  if (error) return status.textContent = "Não foi possível remover a foto.";
+  delete state.profile.avatarPath;
+  saveState();
+  await cloud.from("app_states").upsert({ user_id: currentUser.id, state, updated_at: new Date().toISOString() });
+  setProfileAvatarUrl("");
+  status.textContent = "Foto removida.";
+  showToast("Foto de perfil removida.");
 });
 
 document.getElementById("routine-has-commitment").addEventListener("change", event => {

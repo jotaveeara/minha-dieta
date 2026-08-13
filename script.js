@@ -37,6 +37,7 @@ const DEFAULT_STATE = {
   },
   workoutPlan: { source: "", parsedAt: null, days: {} },
   dietPlan: { source: "", parsedAt: null, parserVersion: 2, meals: [], generalNotes: [], warnings: [] },
+  appearance: { theme: "amber" },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
   dayOverrides: {},          // { "2026-08-17": { faculdade: true } }
@@ -61,6 +62,24 @@ function isoFromDate(d) {
 }
 
 let state = loadState();
+
+const APP_THEMES = {
+  amber: { label: "Âmbar", themeColor: "#0e1013" },
+  ocean: { label: "Oceano", themeColor: "#09131d" },
+  emerald: { label: "Esmeralda", themeColor: "#091611" }
+};
+
+function applyAppearanceTheme(theme = state.appearance?.theme || "amber") {
+  const selected = APP_THEMES[theme] ? theme : "amber";
+  if (!state.appearance) state.appearance = { theme: selected };
+  state.appearance.theme = selected;
+  document.documentElement.dataset.theme = selected;
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.content = APP_THEMES[selected].themeColor;
+}
+
+window.applyAppearanceTheme = applyAppearanceTheme;
+applyAppearanceTheme();
 
 window.activateUserStorage = function(userId, allowLegacyMigration = false) {
   ACTIVE_USER_ID = userId;
@@ -2205,10 +2224,14 @@ document.getElementById("foto-input").addEventListener("change", (e) => {
 --------------------------------------------------------- */
 function renderPerfil() {
   document.getElementById("p-nome").textContent = state.profile.nome;
+  window.updateProfileAvatarIdentity?.();
   document.getElementById("p-idade").textContent = state.profile.idade ? state.profile.idade + " anos" : "—";
   document.getElementById("p-altura").textContent = state.profile.altura ? Number(state.profile.altura).toFixed(2).replace(".", ",") + " m" : "—";
   document.getElementById("p-peso-inicial").textContent = state.profile.pesoInicial ? Number(state.profile.pesoInicial).toFixed(1).replace(".", ",") + " kg" : "—";
   document.getElementById("p-meta-data").textContent = state.profile.metaData ? fmtDateBR(state.profile.metaData) : "—";
+  document.querySelectorAll("[data-theme-choice]").forEach(button => {
+    button.classList.toggle("selected", button.dataset.themeChoice === (state.appearance?.theme || "amber"));
+  });
 
   const routineForm = document.getElementById("form-routine");
   const routine = state.customRoutine || DEFAULT_STATE.customRoutine;
@@ -2238,6 +2261,16 @@ function renderPerfil() {
 
   document.getElementById("toggle-reduzir-fds").checked = state.reduzirFimDeSemana;
 }
+
+document.querySelectorAll("[data-theme-choice]").forEach(button => {
+  button.addEventListener("click", () => {
+    state.appearance = { ...(state.appearance || {}), theme: button.dataset.themeChoice };
+    applyAppearanceTheme();
+    saveState();
+    renderPerfil();
+    showToast(`Paleta ${APP_THEMES[state.appearance.theme].label} aplicada.`);
+  });
+});
 
 document.getElementById("form-metas").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -2328,7 +2361,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=24", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=25", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });

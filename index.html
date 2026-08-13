@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
 
@@ -174,7 +174,8 @@
         <h1 id="header-greeting">Olá</h1>
       </div>
       <button class="icon-btn" id="btn-settings-shortcut" aria-label="Perfil">
-        <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.4-4 4.2-6 7.5-6s6.1 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <img id="header-avatar" alt="Foto do perfil" hidden>
+        <svg id="header-avatar-placeholder" viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.4-4 4.2-6 7.5-6s6.1 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </button>
     </div>
   </header>
@@ -388,7 +389,20 @@
     <h1 class="view-title">Perfil</h1>
 
     <section class="profile-block">
-      <h2 class="section-title">Meus dados</h2>
+      <div class="profile-identity">
+        <div class="profile-avatar" id="profile-avatar-wrap">
+          <img id="profile-avatar" alt="Foto do perfil" hidden>
+          <span id="profile-avatar-initials">U</span>
+        </div>
+        <div class="profile-avatar-copy"><h2 id="profile-display-name">Usuário</h2><span>Foto privada da sua conta</span></div>
+        <div class="profile-avatar-actions">
+          <input type="file" id="profile-avatar-input" accept="image/*" hidden>
+          <button type="button" id="btn-profile-avatar">Alterar foto</button>
+          <button type="button" class="remove" id="btn-remove-profile-avatar" hidden>Remover</button>
+        </div>
+      </div>
+      <p class="avatar-status" id="profile-avatar-status"></p>
+      <h2 class="section-title profile-data-title">Meus dados</h2>
       <div class="profile-grid">
         <div><span>Nome</span><b id="p-nome">—</b></div>
         <div><span>Idade</span><b id="p-idade">20 anos</b></div>
@@ -397,6 +411,16 @@
         <div><span>Data esperada</span><b id="p-meta-data">—</b></div>
       </div>
       <p class="profile-goal" id="p-objetivo">Defina seu objetivo em Minha conta.</p>
+    </section>
+
+    <section class="settings-block appearance-block">
+      <h2 class="section-title">Aparência</h2>
+      <p class="settings-hint">A paleta escolhida fica vinculada à sua conta.</p>
+      <div class="theme-picker">
+        <button type="button" data-theme-choice="amber"><span class="theme-preview amber"><i></i><i></i><i></i></span><b>Âmbar</b><small>Grafite e laranja</small></button>
+        <button type="button" data-theme-choice="ocean"><span class="theme-preview ocean"><i></i><i></i><i></i></span><b>Oceano</b><small>Azul profundo</small></button>
+        <button type="button" data-theme-choice="emerald"><span class="theme-preview emerald"><i></i><i></i><i></i></span><b>Esmeralda</b><small>Verde escuro</small></button>
+      </div>
     </section>
 
     <section class="settings-block account-block">
@@ -528,7 +552,7 @@
       <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
     </section>
 
-    <p class="app-version">Minha Dieta · v1.3</p>
+    <p class="app-version">Minha Dieta · v1.4</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->
@@ -737,8 +761,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=24"></script>
-<script src="script.js?v=24"></script>
-<script src="auth.js?v=24"></script>
+<script src="supabase-config.js?v=25"></script>
+<script src="script.js?v=25"></script>
+<script src="auth.js?v=25"></script>
 </body>
 </html>
