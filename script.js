@@ -1319,6 +1319,103 @@ document.getElementById("workout-editor-clear").addEventListener("click", () => 
   showToast("Exercícios removidos deste dia.");
 });
 
+const workoutBuilderModal = document.getElementById("modal-workout-builder");
+const workoutBuilderForm = document.getElementById("form-workout-builder");
+const builderExercises = document.getElementById("builder-exercises");
+
+function renumberBuilderExercises() {
+  [...builderExercises.children].forEach((row, index) => {
+    row.querySelector(".builder-exercise-number").textContent = index + 1;
+    row.querySelector(".builder-up").disabled = index === 0;
+    row.querySelector(".builder-down").disabled = index === builderExercises.children.length - 1;
+  });
+}
+
+function addBuilderExercise(values = {}) {
+  const row = document.createElement("div");
+  row.className = "builder-exercise";
+  row.innerHTML = `
+    <span class="builder-exercise-number"></span>
+    <div class="builder-exercise-grid">
+      <label class="builder-name">Exercício<input type="text" data-field="name" placeholder="Ex.: Supino reto" required></label>
+      <label>Séries<input type="number" data-field="sets" min="1" max="20" placeholder="4" required></label>
+      <label>Repetições<input type="text" data-field="reps" inputmode="numeric" placeholder="10 ou 8-12" required></label>
+      <label class="builder-load">Carga (opcional)<input type="text" data-field="load" inputmode="decimal" placeholder="Ex.: 40 kg"></label>
+      <label class="builder-note">Observação (opcional)<input type="text" data-field="note" placeholder="Ex.: aumentar carga progressivamente"></label>
+    </div>
+    <div class="builder-exercise-actions"><button type="button" class="builder-up">Subir</button><button type="button" class="builder-down">Descer</button><button type="button" class="builder-remove">Remover</button></div>`;
+  Object.entries(values).forEach(([field, value]) => {
+    const input = row.querySelector(`[data-field="${field}"]`);
+    if (input) input.value = value;
+  });
+  row.querySelector(".builder-up").addEventListener("click", () => {
+    if (row.previousElementSibling) builderExercises.insertBefore(row, row.previousElementSibling);
+    renumberBuilderExercises();
+  });
+  row.querySelector(".builder-down").addEventListener("click", () => {
+    if (row.nextElementSibling) builderExercises.insertBefore(row.nextElementSibling, row);
+    renumberBuilderExercises();
+  });
+  row.querySelector(".builder-remove").addEventListener("click", () => {
+    if (builderExercises.children.length === 1) return showToast("O treino precisa ter pelo menos um exercício.");
+    row.remove();
+    renumberBuilderExercises();
+  });
+  builderExercises.appendChild(row);
+  renumberBuilderExercises();
+}
+
+function openWorkoutBuilder(preferredDay = null) {
+  workoutBuilderForm.reset();
+  const initialDay = preferredDay ?? (new Date().getDay() || 1);
+  workoutBuilderForm.day.value = String(initialDay);
+  workoutBuilderForm.time.value = state.customRoutine?.trainingTime || "18:00";
+  builderExercises.innerHTML = "";
+  addBuilderExercise();
+  workoutBuilderModal.hidden = false;
+}
+
+function closeWorkoutBuilder() {
+  workoutBuilderModal.hidden = true;
+}
+
+document.getElementById("btn-create-workout-profile").addEventListener("click", () => openWorkoutBuilder());
+document.getElementById("btn-create-workout-tab").addEventListener("click", () => openWorkoutBuilder());
+document.getElementById("builder-add-exercise").addEventListener("click", () => addBuilderExercise());
+document.getElementById("workout-builder-cancel").addEventListener("click", closeWorkoutBuilder);
+workoutBuilderModal.addEventListener("click", event => { if (event.target === workoutBuilderModal) closeWorkoutBuilder(); });
+
+workoutBuilderForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const day = Number(workoutBuilderForm.day.value);
+  if (state.workoutPlan?.days?.[day] && !window.confirm(`${WEEKDAY_NAMES[day]} já possui um treino. Deseja substituí-lo?`)) return;
+  const exercises = [...builderExercises.children].map(row => {
+    const get = field => row.querySelector(`[data-field="${field}"]`).value.trim();
+    const name = get("name");
+    const sets = get("sets");
+    const reps = get("reps");
+    const load = get("load");
+    const note = get("note");
+    return `${name} — ${sets} séries de ${reps} repetições${load ? ` — carga ${load}` : ""}${note ? ` — ${note}` : ""}`;
+  });
+  if (!state.workoutPlan) state.workoutPlan = { source: "Criado manualmente", parsedAt: null, parserVersion: 2, days: {} };
+  if (!state.workoutPlan.days) state.workoutPlan.days = {};
+  state.workoutPlan.source = state.workoutPlan.source || "Criado manualmente";
+  state.workoutPlan.days[day] = { focus: workoutBuilderForm.focus.value.trim(), exercises };
+  state.workoutPlan.parsedAt = new Date().toISOString();
+  const trainingDays = new Set((state.customRoutine?.trainingDays || []).map(Number));
+  trainingDays.add(day);
+  state.customRoutine.trainingDays = [...trainingDays];
+  state.customRoutine.trainingTime = workoutBuilderForm.time.value || state.customRoutine.trainingTime;
+  saveState();
+  if (window.persistRoutineConfig) await window.persistRoutineConfig(state.customRoutine);
+  closeWorkoutBuilder();
+  renderTreino();
+  renderSemana();
+  renderHoje();
+  showToast("Treino criado e salvo na sua conta.");
+});
+
 
 /* ---------------------------------------------------------
    17. RENDER — EVOLUÇÃO (peso, medidas, gráfico, fotos)
@@ -1731,7 +1828,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=19", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=20", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });

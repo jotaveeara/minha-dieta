@@ -337,6 +337,16 @@ window.scheduleCloudSave = function(nextState) {
   }, 700);
 };
 
+window.persistRoutineConfig = async function(routine) {
+  if (!currentUser) return false;
+  const { error } = await cloud.from("profiles").update({ routine_config: routine, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+  if (error) {
+    showToast("A rotina foi salva neste aparelho, mas a sincronização falhou.");
+    return false;
+  }
+  return true;
+};
+
 document.getElementById("form-account").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;

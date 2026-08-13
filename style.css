@@ -85,6 +85,7 @@ button, input, select, textarea {
 .workout-file-actions { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
 .workout-file-actions button:first-child { color: var(--amber); }
 .workout-file-actions button:disabled { opacity: .45; }
+.workout-create-launch { margin-top: 8px; border-color: rgba(111,207,143,.35); color: var(--green); }
 .workout-analysis-status { margin: 10px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .workout-analysis { display: grid; gap: 7px; margin-top: 10px; }
 .workout-analysis-day { display: flex; flex-direction: column; gap: 3px; padding: 10px 11px; border: 1px solid var(--surface-border); border-radius: 9px; background: var(--surface-2); }
@@ -94,7 +95,10 @@ button, input, select, textarea {
 /* ============= TREINO ============= */
 .training-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
 .training-title-row .view-subtitle { margin-bottom: 0; }
+.training-title-actions { display: flex; gap: 6px; margin-bottom: 2px; }
 .training-edit-btn { flex: 0 0 auto; margin-bottom: 2px; padding: 9px 11px; border-radius: 9px; border: 1px solid rgba(232,163,61,.45); background: var(--amber-dim); color: var(--amber); font-size: 11.5px; font-weight: 750; }
+.training-edit-btn.create { border-color: rgba(111,207,143,.4); background: rgba(111,207,143,.10); color: var(--green); }
+@media (max-width: 410px) { .training-title-row { align-items: flex-start; } .training-title-actions { flex-direction: column; } .training-edit-btn { padding: 7px 9px; font-size: 10.5px; } }
 .training-today { margin-top: 16px; padding: 18px; border: 1px solid rgba(232,87,74,.35); border-radius: var(--radius-lg); background: var(--surface); }
 .training-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .training-heading span { display: block; color: var(--coral); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
@@ -118,6 +122,19 @@ button, input, select, textarea {
 .workout-editor-sheet { max-height: 92vh; overflow-y: auto; }
 .editor-help { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; margin: 5px 0 15px; }
 .workout-editor-sheet textarea { min-height: 190px; }
+.builder-heading { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 9px; }
+.builder-heading b { color: var(--text-muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+.builder-heading button { padding: 7px 10px; border: 1px solid rgba(232,163,61,.4); border-radius: 8px; background: var(--amber-dim); color: var(--amber); font-size: 11.5px; font-weight: 750; }
+.builder-exercises { display: grid; gap: 10px; }
+.builder-exercise { position: relative; padding: 12px; border: 1px solid var(--surface-border); border-radius: 11px; background: var(--surface-2); }
+.builder-exercise-number { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-bottom: 10px; border-radius: 50%; background: var(--coral-dim); color: var(--coral); font-size: 11px; font-weight: 800; }
+.builder-exercise-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.builder-exercise-grid .builder-name { grid-column: 1 / -1; }
+.builder-exercise-grid .builder-note { grid-column: 1 / -1; }
+.builder-exercise-actions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 9px; }
+.builder-exercise-actions button { padding: 6px 8px; border: 1px solid var(--surface-border); border-radius: 7px; background: var(--surface); color: var(--text-muted); font-size: 11px; }
+.builder-exercise-actions .builder-remove { color: var(--coral); }
+@media (max-width: 410px) { .builder-exercise-grid { grid-template-columns: 1fr 1fr; } .builder-load { grid-column: 1 / -1; } }
 
 /* ============= ONBOARDING ============= */
 .onboarding-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
