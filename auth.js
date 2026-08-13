@@ -414,19 +414,50 @@ document.getElementById("btn-signout").addEventListener("click", async () => {
 
 document.getElementById("btn-upload-workout").addEventListener("click", () => document.getElementById("workout-input").click());
 
+function readBlobAsArrayBuffer(blob) {
+  if (blob && typeof blob.arrayBuffer === "function") return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error("Não foi possível ler o arquivo"));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+async function extractPdfPageText(page) {
+  // No Safari/iOS, PDF.js 6.1.200 pode falhar no for-await usado por getTextContent().
+  // A leitura explícita pelo reader é compatível com o mesmo ReadableStream.
+  if (typeof page.streamTextContent === "function") {
+    const stream = page.streamTextContent();
+    if (stream && typeof stream.getReader === "function") {
+      const reader = stream.getReader();
+      const items = [];
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          if (Array.isArray(chunk.value?.items)) items.push(...chunk.value.items);
+        }
+      } finally {
+        if (typeof reader.releaseLock === "function") reader.releaseLock();
+      }
+      return items.map(item => item.str + (item.hasEOL ? "\n" : " ")).join("");
+    }
+  }
+  const content = await page.getTextContent();
+  return content.items.map(item => item.str + (item.hasEOL ? "\n" : " ")).join("");
+}
+
 async function extractWorkoutText(file) {
-  const buffer = await file.arrayBuffer();
-  if (file.type === "application/pdf") {
+  const buffer = await readBlobAsArrayBuffer(file);
+  if (/\.pdf$/i.test(file.name || "") || file.type === "application/pdf") {
     const pdfjs = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.mjs");
     pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.worker.mjs";
     const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
     const pages = [];
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
       const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent();
-      let pageText = "";
-      content.items.forEach(item => { pageText += item.str + (item.hasEOL ? "\n" : " "); });
-      pages.push(pageText);
+      pages.push(await extractPdfPageText(page));
     }
     return pages.join("\n");
   }
@@ -775,7 +806,7 @@ async function loadWorkoutFiles() {
     actions.append(reanalyze, remove);
     row.append(name, actions);
     box.appendChild(row);
-    if (documentIndex === 0 && state.workoutPlan?.parserVersion !== 2 && !window.autoWorkoutReanalysisStarted) {
+    if (documentIndex === 0 && (!state.workoutPlan?.parserVersion || state.workoutPlan.parserVersion < 2) && !window.autoWorkoutReanalysisStarted) {
       window.autoWorkoutReanalysisStarted = true;
       setTimeout(() => reanalyze.click(), 0);
     }
