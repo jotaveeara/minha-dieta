@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 
@@ -273,6 +273,29 @@
     </section>
   </main>
 
+  <!-- ===================== VIEW: DIETA ===================== -->
+  <main class="view" id="view-dieta" data-view="dieta" hidden>
+    <div class="diet-title-row">
+      <div><h1 class="view-title">Dieta</h1><p class="view-subtitle">Importe e acompanhe seu plano alimentar.</p></div>
+      <button class="diet-import-btn" id="btn-import-diet">Importar plano</button>
+    </div>
+    <input type="file" id="diet-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+    <p class="diet-import-status" id="diet-import-status">Envie um PDF ou DOCX com refeições, alimentos e quantidades.</p>
+    <section class="diet-source-card" id="diet-source-card" hidden></section>
+    <section class="diet-meals-section">
+      <h2 class="section-title">Refeições do plano</h2>
+      <div class="diet-meal-list" id="diet-meal-list"></div>
+    </section>
+    <section class="diet-notes-section" id="diet-notes-section" hidden>
+      <h2 class="section-title">Orientações gerais</h2>
+      <ul class="diet-note-list" id="diet-note-list"></ul>
+    </section>
+    <section class="diet-warning-section" id="diet-warning-section" hidden>
+      <h2 class="section-title">Itens para conferir</h2>
+      <ul class="diet-warning-list" id="diet-warning-list"></ul>
+    </section>
+  </main>
+
   <!-- ===================== VIEW: TREINO ===================== -->
   <main class="view" id="view-treino" data-view="treino" hidden>
     <div class="training-title-row">
@@ -508,6 +531,10 @@
       <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       <span>Semana</span>
     </button>
+    <button class="nav-btn" data-target="dieta">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 4v7M9 4v7M6 8h3M7.5 11v9M15 4c2.5 2 2.5 7 0 9v7M15 4v9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Dieta</span>
+    </button>
     <button class="nav-btn" data-target="treino">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 10v4M6 7v10M18 7v10M21 10v4M8 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>Treino</span>
@@ -626,8 +653,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=20"></script>
-<script src="script.js?v=20"></script>
-<script src="auth.js?v=20"></script>
+<script src="supabase-config.js?v=21"></script>
+<script src="script.js?v=21"></script>
+<script src="auth.js?v=21"></script>
 </body>
 </html>

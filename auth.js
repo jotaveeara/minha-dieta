@@ -563,6 +563,98 @@ function parseWorkoutPlan(text, fileName) {
   return { source: fileName, parsedAt: new Date().toISOString(), parserVersion: 2, days };
 }
 
+function parseDietPlan(text, fileName) {
+  const lines = String(text || "")
+    .split(/\r?\n|\s{3,}/)
+    .map(line => line.replace(/\s+/g, " ").replace(/\s+([.,:;])/g, "$1").trim())
+    .filter(Boolean);
+  const mealHeadings = [
+    [/^(?:primeira|1[ªaº]?)\s+refei[cç][aã]o\b/i, "Café da manhã"],
+    [/^(?:(?:segunda|2[ªaº]?)\s+refei[cç][aã]o|almo[cç]o)\b/i, "Almoço"],
+    [/^(?:terceira|3[ªaº]?)\s+refei[cç][aã]o\b/i, "Lanche"],
+    [/^(?:quarta|4[ªaº]?)\s+refei[cç][aã]o\b/i, "Quarta refeição"],
+    [/^(?:quinta|5[ªaº]?)\s+refei[cç][aã]o\b/i, "Quinta refeição"],
+    [/^jantar\b/i, "Jantar"], [/^p[oó]s\s*-?\s*treino\b/i, "Pós-treino"],
+    [/^ceia\b/i, "Ceia"], [/^lanche\b/i, "Lanche"]
+  ];
+  const generalPattern = /^(?:todo\s+|aos?\s+|de\s+)?(?:segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)\b|^(?:creatina|glutamina|multivitam[ií]nico|vitamina|tomar\s+\d|[aá]gua\b)/i;
+  const meals = [];
+  const generalNotes = [];
+  const warnings = [];
+  let currentMeal = null;
+  let specialNoteMode = false;
+  const cleanItem = value => value
+    .replace(/\bgr\.?\b/gi, "g")
+    .replace(/\bgramas?\b/gi, match => match.toLowerCase().startsWith("grama") ? "g" : match)
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,])/g, "$1")
+    .trim();
+
+  lines.forEach(rawLine => {
+    const line = cleanItem(rawLine);
+    const heading = mealHeadings.find(([pattern]) => pattern.test(line));
+    if (heading) {
+      const time = line.match(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/)?.[0] || null;
+      let title = heading[1];
+      if (/almo[cç]o/i.test(line)) title = "Almoço";
+      currentMeal = { id: `diet_meal_${meals.length + 1}`, title, time, items: [] };
+      meals.push(currentMeal);
+      specialNoteMode = false;
+      return;
+    }
+    const general = generalPattern.test(line) || /refei[cç][aã]o\s+livre|litros?\s+de\s+[aá]gua|por\s+dia|pela\s+manh[aã]|antes\s+de\s+dormir/i.test(line);
+    if (general || specialNoteMode) {
+      generalNotes.push(line);
+      specialNoteMode = /^(?:sábado|sabado|domingo)\s*[!.:]?$/i.test(line);
+      return;
+    }
+    if (currentMeal) currentMeal.items.push(line);
+    else generalNotes.push(line);
+  });
+
+  meals.forEach(meal => {
+    meal.items = meal.items.filter(item => {
+      if (/^(?:pode\s+tomar|observa[cç][aã]o|op[cç][aã]o)\b/i.test(item)) return true;
+      return item.length > 1;
+    });
+  });
+  const allText = lines.join(" ");
+  const suspiciousScoops = allText.match(/\b\d+(?:[.,]\d+)?\s+scoops?\b/gi) || [];
+  suspiciousScoops.forEach(item => warnings.push(`Confira a unidade informada em “${item}”.`));
+  meals.filter(meal => !meal.items.length).forEach(meal => warnings.push(`${meal.title} foi identificada sem alimentos.`));
+  if (!meals.length) throw new Error("Não encontrei blocos de refeições no documento");
+  return { source: fileName, parsedAt: new Date().toISOString(), parserVersion: 1, meals, generalNotes: [...new Set(generalNotes)], warnings: [...new Set(warnings)] };
+}
+
+document.getElementById("btn-import-diet").addEventListener("click", () => document.getElementById("diet-input").click());
+document.getElementById("diet-input").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (!/\.(pdf|docx)$/i.test(file.name)) return showToast("Envie apenas PDF ou DOCX.");
+  if (file.size > 10485760) return showToast("O arquivo deve ter no máximo 10 MB.");
+  const status = document.getElementById("diet-import-status");
+  status.textContent = "Lendo e organizando o plano alimentar…";
+  try {
+    const plan = parseDietPlan(await extractWorkoutText(file), file.name);
+    state.dietPlan = plan;
+    state.customRoutine.mealCount = plan.meals.length;
+    const freeMealSaturday = plan.generalNotes.some(note => /sábado|sabado/i.test(note) && /refei[cç][aã]o\s+livre/i.test(note));
+    if (freeMealSaturday) state.customRoutine.freeMealDay = 6;
+    const water = plan.generalNotes.join(" ").match(/(\d+(?:[.,]\d+)?)\s*litros?\s+de\s+[aá]gua/i);
+    if (water) state.metas.aguaMetaMl = Math.round(Number(water[1].replace(",", ".")) * 1000);
+    saveState();
+    await window.persistRoutineConfig?.(state.customRoutine);
+    renderDieta();
+    renderHoje();
+    renderSemana();
+    status.textContent = `${plan.meals.length} refeição(ões) importada(s). Confira os itens abaixo.`;
+    showToast("Plano alimentar importado.");
+  } catch (error) {
+    status.textContent = `Não foi possível organizar o plano: ${error.message}.`;
+  }
+});
+
 function renderWorkoutAnalysis() {
   const box = document.getElementById("workout-analysis");
   const plan = state.workoutPlan;

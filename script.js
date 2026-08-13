@@ -36,6 +36,7 @@ const DEFAULT_STATE = {
     commitment: { enabled: false, name: "", days: [], start: "08:00", end: "12:00" }
   },
   workoutPlan: { source: "", parsedAt: null, days: {} },
+  dietPlan: { source: "", parsedAt: null, parserVersion: 1, meals: [], generalNotes: [], warnings: [] },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
   dayOverrides: {},          // { "2026-08-17": { faculdade: true } }
@@ -271,11 +272,12 @@ function gerarDiaPersonalizado(dateObj) {
   const events = [];
   events.push(mkLembrete({ id: "acordar", time: cfg.wakeTime, title: "Início do dia", desc: "Horário habitual informado no seu perfil." }));
 
-  const mealCount = Math.max(3, Math.min(6, Number(cfg.mealCount) || 4));
+  const importedMeals = state.dietPlan?.meals || [];
+  const mealCount = importedMeals.length || Math.max(3, Math.min(6, Number(cfg.mealCount) || 4));
   const wake = timeToMinutes(cfg.wakeTime);
   const sleep = timeToMinutes(cfg.sleepTime, 1380);
   const awakeDuration = sleep > wake ? sleep - wake : sleep + 1440 - wake;
-  const mealTitles = mealCount === 3 ? ["Café da manhã", "Almoço", "Jantar"] :
+  const mealTitles = importedMeals.length ? importedMeals.map(meal => meal.title) : mealCount === 3 ? ["Café da manhã", "Almoço", "Jantar"] :
     mealCount === 4 ? ["Café da manhã", "Almoço", "Lanche", "Jantar"] :
     mealCount === 5 ? ["Café da manhã", "Lanche da manhã", "Almoço", "Lanche da tarde", "Jantar"] :
     ["Café da manhã", "Lanche da manhã", "Almoço", "Lanche da tarde", "Jantar", "Ceia"];
@@ -283,13 +285,14 @@ function gerarDiaPersonalizado(dateObj) {
     const position = mealCount === 1 ? 0 : index / (mealCount - 1);
     const minute = wake + 45 + position * Math.max(120, awakeDuration - 120);
     const isPlannedFreeMeal = cfg.freeMealDay !== null && cfg.freeMealDay !== undefined && Number(cfg.freeMealDay) === wd && index === mealTitles.length - 1;
+    const imported = importedMeals[index];
     events.push(genericMeal(
-      `custom_meal_${index + 1}`,
-      minutesToTime(minute),
+      imported?.id || `custom_meal_${index + 1}`,
+      imported?.time || minutesToTime(minute),
       isPlannedFreeMeal ? "Refeição livre planejada" : title,
       isPlannedFreeMeal
         ? "Dia escolhido no seu perfil para a refeição livre. Registre normalmente o que consumir."
-        : undefined
+        : imported?.items?.join(" · ") || undefined
     ));
   });
 
@@ -516,6 +519,7 @@ function switchView(target) {
   navBtns.forEach(b => b.classList.toggle("active", b.dataset.target === target));
   if (target === "hoje") renderHoje();
   if (target === "semana") renderSemana();
+  if (target === "dieta") renderDieta();
   if (target === "treino") renderTreino();
   if (target === "evolucao") renderEvolucao();
   if (target === "perfil") renderPerfil();
@@ -1156,7 +1160,85 @@ function renderFreeMealStatus() {
 }
 
 /* ---------------------------------------------------------
-   16. RENDER — TREINO SEPARADO DA ALIMENTAÇÃO
+   16. RENDER — DIETA IMPORTADA
+--------------------------------------------------------- */
+function renderDieta() {
+  const plan = state.dietPlan || DEFAULT_STATE.dietPlan;
+  const source = document.getElementById("diet-source-card");
+  const mealsBox = document.getElementById("diet-meal-list");
+  const notesSection = document.getElementById("diet-notes-section");
+  const notesBox = document.getElementById("diet-note-list");
+  const warningSection = document.getElementById("diet-warning-section");
+  const warningBox = document.getElementById("diet-warning-list");
+  source.hidden = !plan.source;
+  source.innerHTML = "";
+  if (plan.source) {
+    const sourceInfo = document.createElement("div");
+    const sourceTitle = document.createElement("b");
+    sourceTitle.textContent = plan.source;
+    const sourceMeta = document.createElement("span");
+    sourceMeta.textContent = `${plan.meals.length} refeição(ões) identificada(s)`;
+    sourceInfo.append(sourceTitle, sourceMeta);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Remover plano";
+    remove.addEventListener("click", () => {
+      if (!window.confirm("Remover o plano alimentar importado desta conta?")) return;
+      state.dietPlan = structuredCloneSafe(DEFAULT_STATE.dietPlan);
+      saveState();
+      renderDieta();
+      renderHoje();
+      showToast("Plano alimentar removido.");
+    });
+    source.append(sourceInfo, remove);
+  }
+  mealsBox.innerHTML = "";
+  plan.meals.forEach((meal, index) => {
+    const card = document.createElement("article");
+    card.className = "diet-meal-card";
+    const head = document.createElement("div");
+    const number = document.createElement("span");
+    number.textContent = String(index + 1).padStart(2, "0");
+    const heading = document.createElement("div");
+    const title = document.createElement("b");
+    title.textContent = meal.title;
+    const time = document.createElement("small");
+    time.textContent = meal.time || "Horário flexível";
+    heading.append(title, time);
+    head.append(number, heading);
+    const list = document.createElement("ul");
+    meal.items.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+    card.append(head, list);
+    mealsBox.appendChild(card);
+  });
+  if (!plan.meals.length) {
+    const empty = document.createElement("div");
+    empty.className = "diet-empty";
+    empty.innerHTML = "<b>Nenhum plano importado</b><span>Use o botão Importar plano para enviar seu PDF ou DOCX.</span>";
+    mealsBox.appendChild(empty);
+  }
+  notesSection.hidden = !plan.generalNotes.length;
+  notesBox.innerHTML = "";
+  plan.generalNotes.forEach(note => {
+    const li = document.createElement("li");
+    li.textContent = note;
+    notesBox.appendChild(li);
+  });
+  warningSection.hidden = !plan.warnings.length;
+  warningBox.innerHTML = "";
+  plan.warnings.forEach(warning => {
+    const li = document.createElement("li");
+    li.textContent = warning;
+    warningBox.appendChild(li);
+  });
+}
+
+/* ---------------------------------------------------------
+   17. RENDER — TREINO SEPARADO DA ALIMENTAÇÃO
 --------------------------------------------------------- */
 function createExerciseList(exercises) {
   const list = document.createElement("ol");
@@ -1828,7 +1910,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=20", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=21", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });
