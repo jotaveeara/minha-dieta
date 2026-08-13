@@ -36,7 +36,10 @@
         <input type="email" id="auth-email" autocomplete="email" required>
       </label>
       <label>Senha
-        <input type="password" id="auth-password" minlength="6" autocomplete="current-password" required>
+        <div class="password-field">
+          <input type="password" id="auth-password" minlength="6" autocomplete="current-password" required>
+          <button type="button" class="password-peek" data-password-target="auth-password" aria-label="Segure para mostrar a senha">Mostrar</button>
+        </div>
       </label>
       <button type="submit" class="btn-primary" id="auth-submit">Entrar</button>
     </form>
@@ -52,10 +55,16 @@
     <p class="auth-subtitle">Cadastre uma nova senha para acessar sua conta.</p>
     <form id="recovery-form" class="auth-form">
       <label>Nova senha
-        <input type="password" id="recovery-password" minlength="6" autocomplete="new-password" required>
+        <div class="password-field">
+          <input type="password" id="recovery-password" minlength="6" autocomplete="new-password" required>
+          <button type="button" class="password-peek" data-password-target="recovery-password" aria-label="Segure para mostrar a senha">Mostrar</button>
+        </div>
       </label>
       <label>Confirmar nova senha
-        <input type="password" id="recovery-password-confirm" minlength="6" autocomplete="new-password" required>
+        <div class="password-field">
+          <input type="password" id="recovery-password-confirm" minlength="6" autocomplete="new-password" required>
+          <button type="button" class="password-peek" data-password-target="recovery-password-confirm" aria-label="Segure para mostrar a senha">Mostrar</button>
+        </div>
       </label>
       <button type="submit" class="btn-primary">Atualizar senha</button>
     </form>

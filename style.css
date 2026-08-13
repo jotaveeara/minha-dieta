@@ -73,6 +73,10 @@ button, input, select, textarea {
 .auth-forgot { display: block; border: 0; background: transparent; color: var(--amber); margin: 14px auto 0; font-size: 12px; }
 .auth-status { min-height: 18px; color: var(--text-muted); text-align: center; font-size: 12px; line-height: 1.4; }
 .auth-status.error { color: var(--coral); }
+.password-field { display: grid; grid-template-columns: 1fr auto; align-items: stretch; }
+.password-field input { min-width: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.password-peek { border: 1px solid var(--surface-border); border-left: 0; background: var(--surface-2); color: var(--amber); padding: 0 11px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 11px; font-weight: 750; touch-action: none; }
+.password-peek.pressed { background: var(--amber-dim); }
 .sync-status { color: var(--text-muted); font-size: 12px; margin: 12px 0 0; }
 .workout-files { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .workout-file { display: flex; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--surface-border); border-radius: 10px; font-size: 12px; }

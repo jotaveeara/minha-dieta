@@ -54,6 +54,17 @@ function setAuthMode(mode) {
 
 document.querySelectorAll("[data-auth-mode]").forEach(button => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
 
+document.querySelectorAll("[data-password-target]").forEach(button => {
+  const input = document.getElementById(button.dataset.passwordTarget);
+  const reveal = event => { event.preventDefault(); input.type = "text"; button.classList.add("pressed"); };
+  const conceal = () => { input.type = "password"; button.classList.remove("pressed"); };
+  button.addEventListener("pointerdown", reveal);
+  button.addEventListener("pointerup", conceal);
+  button.addEventListener("pointercancel", conceal);
+  button.addEventListener("pointerleave", conceal);
+  button.addEventListener("contextmenu", event => event.preventDefault());
+});
+
 document.getElementById("auth-form").addEventListener("submit", async event => {
   event.preventDefault();
   const email = document.getElementById("auth-email").value.trim();
@@ -127,6 +138,8 @@ function translateAuthError(message = "") {
 async function loadUserData(user) {
   loadingCloudState = true;
   currentUser = user;
+  const activated = window.activateUserStorage(user.id, true);
+  window.activateUserPhotos(user.id);
   document.getElementById("account-email").textContent = user.email;
   const [{ data: profile, error: profileError }, { data: remote, error: stateError }] = await Promise.all([
     cloud.from("profiles").select("nome,peso,altura,objetivo").single(),
@@ -141,9 +154,9 @@ async function loadUserData(user) {
       metas: Object.assign({}, DEFAULT_STATE.metas, remote.state.metas || {}),
       segundaConfig: Object.assign({}, DEFAULT_STATE.segundaConfig, remote.state.segundaConfig || {})
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(`joaofit_state_v2_${user.id}`, JSON.stringify(state));
   } else {
-    await cloud.from("app_states").upsert({ user_id: user.id, state });
+    await cloud.from("app_states").upsert({ user_id: user.id, state: activated.state });
   }
 
   if (profile) {

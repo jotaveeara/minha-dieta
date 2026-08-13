@@ -8,7 +8,9 @@
 /* ---------------------------------------------------------
    1. STORAGE
 --------------------------------------------------------- */
-const STORAGE_KEY = "joaofit_state_v1";
+const LEGACY_STORAGE_KEY = "joaofit_state_v1";
+let STORAGE_KEY = LEGACY_STORAGE_KEY;
+let ACTIVE_USER_ID = null;
 
 const DEFAULT_STATE = {
   profile: {
@@ -52,17 +54,41 @@ function isoFromDate(d) {
 
 let state = loadState();
 
+window.activateUserStorage = function(userId, allowLegacyMigration = false) {
+  ACTIVE_USER_ID = userId;
+  STORAGE_KEY = `joaofit_state_v2_${userId}`;
+  const userState = localStorage.getItem(STORAGE_KEY);
+  if (userState) {
+    state = parseStoredState(userState);
+    return { state, migrated: false };
+  }
+  const migrationOwner = localStorage.getItem("joaofit_legacy_owner");
+  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (allowLegacyMigration && legacy && !migrationOwner) {
+    state = parseStoredState(legacy);
+    localStorage.setItem("joaofit_legacy_owner", userId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return { state, migrated: true };
+  }
+  state = structuredCloneSafe(DEFAULT_STATE);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  return { state, migrated: false };
+};
+
+function parseStoredState(raw) {
+  const parsed = JSON.parse(raw);
+  return Object.assign(structuredCloneSafe(DEFAULT_STATE), parsed, {
+    profile: Object.assign({}, DEFAULT_STATE.profile, parsed.profile || {}),
+    metas: Object.assign({}, DEFAULT_STATE.metas, parsed.metas || {}),
+    segundaConfig: Object.assign({}, DEFAULT_STATE.segundaConfig, parsed.segundaConfig || {})
+  });
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return structuredCloneSafe(DEFAULT_STATE);
-    const parsed = JSON.parse(raw);
-    // merge raso para tolerar novas chaves em versões futuras
-    return Object.assign(structuredCloneSafe(DEFAULT_STATE), parsed, {
-      profile: Object.assign({}, DEFAULT_STATE.profile, parsed.profile || {}),
-      metas: Object.assign({}, DEFAULT_STATE.metas, parsed.metas || {}),
-      segundaConfig: Object.assign({}, DEFAULT_STATE.segundaConfig, parsed.segundaConfig || {})
-    });
+    return parseStoredState(raw);
   } catch (e) {
     console.error("Falha ao carregar estado, iniciando novo.", e);
     return structuredCloneSafe(DEFAULT_STATE);
@@ -1213,11 +1239,18 @@ document.getElementById("form-peso").addEventListener("submit", (e) => {
 let photosDB = null;
 let photosSupported = "indexedDB" in window;
 
+window.activateUserPhotos = function(userId) {
+  if (photosDB) photosDB.close();
+  photosDB = null;
+  ACTIVE_USER_ID = userId;
+};
+
 function openPhotosDB() {
   return new Promise((resolve, reject) => {
     if (!photosSupported) return reject(new Error("IndexedDB indisponível"));
     if (photosDB) return resolve(photosDB);
-    const req = indexedDB.open("joaofit_fotos", 1);
+    if (!ACTIVE_USER_ID) return reject(new Error("Usuário não identificado"));
+    const req = indexedDB.open(`joaofit_fotos_${ACTIVE_USER_ID}`, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains("fotos")) {
@@ -1401,7 +1434,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
   if (!confirm("Isso vai apagar todos os dados salvos neste aparelho (checklist, água, peso, fotos, configurações). Deseja continuar?")) return;
   localStorage.removeItem(STORAGE_KEY);
   if (photosSupported) {
-    indexedDB.deleteDatabase("joaofit_fotos");
+    if (ACTIVE_USER_ID) indexedDB.deleteDatabase(`joaofit_fotos_${ACTIVE_USER_ID}`);
   }
   state = structuredCloneSafe(DEFAULT_STATE);
   saveState();
