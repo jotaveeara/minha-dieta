@@ -702,10 +702,8 @@ function renderTimeline(plan, iso) {
     } else if (ev.type === "treino") {
       actionsHtml = `<div class="t-actions"><button class="t-btn primary" data-action="toggle" data-id="${ev.id}">${done ? "Treino concluído ✓" : "Treino concluído ✓ (marcar)"}</button></div>`;
     } else if (ev.type === "periodo") {
-      const flags = comp[ev.id + "_maca"] ? "done" : "";
       actionsHtml = `<div class="t-actions">
-        <button class="t-btn ${comp[ev.id+'_maca']?'primary':''}" data-action="toggle" data-id="${ev.id}_maca">${comp[ev.id+'_maca'] ? "Levei maçã ✓" : "Levei maçã"}</button>
-        <button class="t-btn ${comp[ev.id+'_agua']?'primary':''}" data-action="toggle" data-id="${ev.id}_agua">${comp[ev.id+'_agua'] ? "Bebi água ✓" : "Bebi água"}</button>
+        <button class="t-btn primary" data-action="toggle" data-id="${ev.id}">${done ? "Compromisso concluído ✓" : "Marcar como concluído"}</button>
       </div>`;
     }
 
@@ -1438,6 +1436,21 @@ function renderPerfil() {
   document.getElementById("p-altura").textContent = state.profile.altura ? Number(state.profile.altura).toFixed(2).replace(".", ",") + " m" : "—";
   document.getElementById("p-peso-inicial").textContent = state.profile.pesoInicial ? Number(state.profile.pesoInicial).toFixed(1).replace(".", ",") + " kg" : "—";
   document.getElementById("p-meta-data").textContent = state.profile.metaData ? fmtDateBR(state.profile.metaData) : "—";
+
+  const routineForm = document.getElementById("form-routine");
+  const routine = state.customRoutine || DEFAULT_STATE.customRoutine;
+  routineForm.wake_time.value = routine.wakeTime || "07:00";
+  routineForm.sleep_time.value = routine.sleepTime || "23:00";
+  routineForm.meal_count.value = routine.mealCount || 4;
+  routineForm.training_time.value = routine.trainingTime || "18:00";
+  routineForm.free_meal_day.value = routine.freeMealDay ?? "";
+  routineForm.has_commitment.checked = !!routine.commitment?.enabled;
+  routineForm.commitment_name.value = routine.commitment?.name || "";
+  routineForm.commitment_start.value = routine.commitment?.start || "08:00";
+  routineForm.commitment_end.value = routine.commitment?.end || "12:00";
+  routineForm.querySelectorAll('input[name="training_days"]').forEach(input => input.checked = (routine.trainingDays || []).map(Number).includes(Number(input.value)));
+  routineForm.querySelectorAll('input[name="commitment_days"]').forEach(input => input.checked = (routine.commitment?.days || []).map(Number).includes(Number(input.value)));
+  document.getElementById("routine-commitment-fields").hidden = !routineForm.has_commitment.checked;
 
   const f = document.getElementById("form-metas");
   f.kcal.value = state.metas.kcal;

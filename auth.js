@@ -363,6 +363,40 @@ document.getElementById("form-account").addEventListener("submit", async event =
   showToast("Perfil salvo.");
 });
 
+document.getElementById("routine-has-commitment").addEventListener("change", event => {
+  document.getElementById("routine-commitment-fields").hidden = !event.target.checked;
+});
+
+document.getElementById("form-routine").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const enabled = form.has_commitment.checked;
+  const routine = {
+    enabled: true,
+    wakeTime: form.wake_time.value,
+    sleepTime: form.sleep_time.value,
+    mealCount: Number(form.meal_count.value),
+    trainingDays: selectedNumbers(form, "training_days"),
+    trainingTime: form.training_time.value,
+    freeMealDay: form.free_meal_day.value === "" ? null : Number(form.free_meal_day.value),
+    commitment: {
+      enabled,
+      name: enabled ? form.commitment_name.value.trim() : "",
+      days: enabled ? selectedNumbers(form, "commitment_days") : [],
+      start: form.commitment_start.value || "08:00",
+      end: form.commitment_end.value || "12:00"
+    }
+  };
+  const { error } = await cloud.from("profiles").update({ routine_config: routine, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+  if (error) return showToast("Não foi possível salvar a rotina.");
+  state.customRoutine = routine;
+  saveState();
+  renderHoje();
+  renderSemana();
+  renderPerfil();
+  showToast("Rotina atualizada.");
+});
+
 document.getElementById("btn-signout").addEventListener("click", async () => {
   await cloud.auth.signOut();
 });

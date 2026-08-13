@@ -305,7 +305,8 @@
           <input type="date" name="data" required>
         </label>
         <label>Peso (kg)
-          <input type="number" name="peso" step="0.1" min="0" required>
+          <input type="number" name="peso" step="0.1" min="20" max="500" placeholder="Ex.: 85" required>
+          <small>Informe em quilogramas: 85 ou 85,5.</small>
         </label>
         <label>Cintura (cm)
           <input type="text" name="cintura" inputmode="decimal" placeholder="Ex.: 85">
@@ -382,6 +383,36 @@
       <input type="file" id="workout-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
       <button class="btn-secondary" id="btn-upload-workout">Enviar PDF/DOCX</button>
       <div class="workout-files" id="workout-files"></div>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Personalizar minha rotina</h2>
+      <p class="settings-hint">Altere sua semana sem refazer o cadastro inicial.</p>
+      <form id="form-routine" class="settings-form">
+        <div class="onboarding-grid">
+          <label>Acordar<input type="time" name="wake_time" required></label>
+          <label>Dormir<input type="time" name="sleep_time" required></label>
+          <label>Refeições por dia<select name="meal_count"><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+          <label>Horário do treino<input type="time" name="training_time"></label>
+        </div>
+        <label>Dias de treino</label>
+        <div class="weekday-picker">
+          <label><input type="checkbox" name="training_days" value="1"><span>Seg</span></label><label><input type="checkbox" name="training_days" value="2"><span>Ter</span></label><label><input type="checkbox" name="training_days" value="3"><span>Qua</span></label><label><input type="checkbox" name="training_days" value="4"><span>Qui</span></label><label><input type="checkbox" name="training_days" value="5"><span>Sex</span></label><label><input type="checkbox" name="training_days" value="6"><span>Sáb</span></label><label><input type="checkbox" name="training_days" value="0"><span>Dom</span></label>
+        </div>
+        <label>Dia preferido para refeição livre
+          <select name="free_meal_day"><option value="">Sem dia fixo</option><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
+        </label>
+        <label class="toggle-row"><span>Tenho trabalho ou estudo regular</span><input type="checkbox" name="has_commitment" id="routine-has-commitment"></label>
+        <div id="routine-commitment-fields" hidden>
+          <label>Nome<input type="text" name="commitment_name" placeholder="Ex.: Trabalho, faculdade ou curso"></label>
+          <div class="onboarding-grid"><label>Início<input type="time" name="commitment_start"></label><label>Fim<input type="time" name="commitment_end"></label></div>
+          <label>Dias do compromisso</label>
+          <div class="weekday-picker">
+            <label><input type="checkbox" name="commitment_days" value="1"><span>Seg</span></label><label><input type="checkbox" name="commitment_days" value="2"><span>Ter</span></label><label><input type="checkbox" name="commitment_days" value="3"><span>Qua</span></label><label><input type="checkbox" name="commitment_days" value="4"><span>Qui</span></label><label><input type="checkbox" name="commitment_days" value="5"><span>Sex</span></label><label><input type="checkbox" name="commitment_days" value="6"><span>Sáb</span></label><label><input type="checkbox" name="commitment_days" value="0"><span>Dom</span></label>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Salvar rotina</button>
+      </form>
     </section>
 
     <section class="settings-block">
