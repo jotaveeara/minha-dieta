@@ -10,8 +10,10 @@ let currentUser = null;
 let authMode = "login";
 let cloudSaveTimer = null;
 let loadingCloudState = false;
+let passwordRecoveryActive = false;
 
 const authGate = document.getElementById("auth-gate");
+const recoveryGate = document.getElementById("recovery-gate");
 const appElement = document.getElementById("app");
 const authStatus = document.getElementById("auth-status");
 
@@ -22,12 +24,21 @@ function setAuthStatus(message, error = false) {
 
 function showAuth() {
   authGate.hidden = false;
+  recoveryGate.hidden = true;
   appElement.hidden = true;
 }
 
 function showApp() {
   authGate.hidden = true;
+  recoveryGate.hidden = true;
   appElement.hidden = false;
+}
+
+function showRecovery() {
+  passwordRecoveryActive = true;
+  authGate.hidden = true;
+  recoveryGate.hidden = false;
+  appElement.hidden = true;
 }
 
 function setAuthMode(mode) {
@@ -70,8 +81,34 @@ document.getElementById("auth-form").addEventListener("submit", async event => {
 document.getElementById("auth-forgot").addEventListener("click", async () => {
   const email = document.getElementById("auth-email").value.trim();
   if (!email) return setAuthStatus("Informe seu e-mail primeiro.", true);
-  const { error } = await cloud.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  const redirectTo = "https://jotaveeara.github.io/minha-dieta/";
+  setAuthStatus("Enviando link de recuperação…");
+  const { error } = await cloud.auth.resetPasswordForEmail(email, { redirectTo });
   setAuthStatus(error ? translateAuthError(error.message) : "Enviamos o link de recuperação para seu e-mail.", !!error);
+});
+
+document.getElementById("recovery-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const password = document.getElementById("recovery-password").value;
+  const confirmation = document.getElementById("recovery-password-confirm").value;
+  const status = document.getElementById("recovery-status");
+  if (password !== confirmation) {
+    status.textContent = "As senhas não coincidem.";
+    status.classList.add("error");
+    return;
+  }
+  status.textContent = "Atualizando senha…";
+  status.classList.remove("error");
+  const { error } = await cloud.auth.updateUser({ password });
+  if (error) {
+    status.textContent = translateAuthError(error.message);
+    status.classList.add("error");
+    return;
+  }
+  status.textContent = "Senha atualizada com sucesso.";
+  passwordRecoveryActive = false;
+  history.replaceState(null, "", location.pathname);
+  setTimeout(showApp, 800);
 });
 
 function translateAuthError(message = "") {
@@ -214,6 +251,12 @@ async function loadWorkoutFiles() {
 }
 
 cloud.auth.onAuthStateChange((event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    passwordRecoveryActive = true;
+    currentUser = session?.user || null;
+    showRecovery();
+    return;
+  }
   if (session?.user) loadUserData(session.user);
   else {
     currentUser = null;
@@ -223,6 +266,7 @@ cloud.auth.onAuthStateChange((event, session) => {
 
 (async function startAuth() {
   const { data } = await cloud.auth.getSession();
+  if (passwordRecoveryActive) return;
   if (data.session?.user) await loadUserData(data.session.user);
   else showAuth();
 })();

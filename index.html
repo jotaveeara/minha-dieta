@@ -45,6 +45,24 @@
   </div>
 </section>
 
+<section class="auth-gate" id="recovery-gate" hidden>
+  <div class="auth-card">
+    <img src="icon-192.png" class="auth-logo" alt="">
+    <h1>Nova senha</h1>
+    <p class="auth-subtitle">Cadastre uma nova senha para acessar sua conta.</p>
+    <form id="recovery-form" class="auth-form">
+      <label>Nova senha
+        <input type="password" id="recovery-password" minlength="6" autocomplete="new-password" required>
+      </label>
+      <label>Confirmar nova senha
+        <input type="password" id="recovery-password-confirm" minlength="6" autocomplete="new-password" required>
+      </label>
+      <button type="submit" class="btn-primary">Atualizar senha</button>
+    </form>
+    <p class="auth-status" id="recovery-status"></p>
+  </div>
+</section>
+
 <div id="app" hidden>
 
   <!-- ===================== HEADER ===================== -->
