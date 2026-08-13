@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 
@@ -275,8 +275,10 @@
 
   <!-- ===================== VIEW: TREINO ===================== -->
   <main class="view" id="view-treino" data-view="treino" hidden>
-    <h1 class="view-title">Treino</h1>
-    <p class="view-subtitle">Seu plano separado da alimentação.</p>
+    <div class="training-title-row">
+      <div><h1 class="view-title">Treino</h1><p class="view-subtitle">Seu plano separado da alimentação.</p></div>
+      <button class="training-edit-btn" id="btn-edit-workout">Corrigir plano</button>
+    </div>
     <section class="training-today" id="training-today"></section>
     <section class="training-week">
       <h2 class="section-title">Divisão semanal</h2>
@@ -521,6 +523,29 @@
 
 </div>
 
+<!-- ===================== MODAL: EDITAR TREINO ===================== -->
+<div class="modal-overlay" id="modal-workout-editor" hidden>
+  <div class="modal-sheet workout-editor-sheet">
+    <div class="modal-handle"></div>
+    <h3>Corrigir treino identificado</h3>
+    <p class="editor-help">Escolha o dia e deixe um exercício por linha. Você pode corrigir textos quebrados pelo PDF.</p>
+    <form id="form-workout-editor" class="settings-form">
+      <label>Dia da semana
+        <select name="day" id="workout-editor-day"><option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="0">Domingo</option></select>
+      </label>
+      <label>Grupo muscular / nome do treino
+        <input type="text" name="focus" id="workout-editor-focus" placeholder="Ex.: Peito + tríceps">
+      </label>
+      <label>Exercícios
+        <textarea name="exercises" id="workout-editor-exercises" rows="9" placeholder="Supino reto — 4 séries de 10 repetições&#10;Crucifixo — 3 séries de 12 repetições"></textarea>
+      </label>
+      <button type="submit" class="btn-primary">Salvar correções</button>
+      <button type="button" class="btn-secondary" id="workout-editor-clear">Limpar exercícios deste dia</button>
+      <button type="button" class="btn-secondary" id="workout-editor-cancel">Cancelar</button>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== MODAL: SUBSTITUIR ===================== -->
 <div class="modal-overlay" id="modal-substituir" hidden>
   <div class="modal-sheet">
@@ -576,8 +601,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=17"></script>
-<script src="script.js?v=17"></script>
-<script src="auth.js?v=17"></script>
+<script src="supabase-config.js?v=18"></script>
+<script src="script.js?v=18"></script>
+<script src="auth.js?v=18"></script>
 </body>
 </html>

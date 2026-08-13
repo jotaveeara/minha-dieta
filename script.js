@@ -1228,6 +1228,7 @@ function renderTreino() {
     const card = document.createElement("article");
     card.className = "training-day-card";
     const cardHead = document.createElement("div");
+    cardHead.className = "training-day-head";
     const dayName = document.createElement("b");
     dayName.textContent = WEEKDAY_NAMES[dayIndex];
     const focus = document.createElement("span");
@@ -1235,6 +1236,12 @@ function renderTreino() {
     cardHead.append(dayName, focus);
     card.appendChild(cardHead);
     if (dayWorkout?.exercises?.length) card.appendChild(createExerciseList(dayWorkout.exercises));
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "training-card-edit";
+    edit.textContent = dayWorkout?.exercises?.length ? "Corrigir este treino" : "Adicionar exercícios";
+    edit.addEventListener("click", () => openWorkoutEditor(dayIndex));
+    card.appendChild(edit);
     weekBox.appendChild(card);
   }
   if (!weekBox.children.length) {
@@ -1244,6 +1251,73 @@ function renderTreino() {
     weekBox.appendChild(empty);
   }
 }
+
+const workoutEditorModal = document.getElementById("modal-workout-editor");
+const workoutEditorForm = document.getElementById("form-workout-editor");
+
+function fillWorkoutEditor(day) {
+  const dayNumber = Number(day);
+  const workout = state.workoutPlan?.days?.[dayNumber];
+  workoutEditorForm.day.value = String(dayNumber);
+  workoutEditorForm.focus.value = workout?.focus || "";
+  workoutEditorForm.exercises.value = (workout?.exercises || []).join("\n");
+}
+
+function openWorkoutEditor(preferredDay = null) {
+  const importedDays = Object.keys(state.workoutPlan?.days || {}).map(Number);
+  const trainingDays = (state.customRoutine?.trainingDays || []).map(Number);
+  const day = preferredDay ?? (importedDays.includes(new Date().getDay()) ? new Date().getDay() : importedDays[0] ?? trainingDays[0] ?? 1);
+  fillWorkoutEditor(day);
+  workoutEditorModal.hidden = false;
+}
+
+function closeWorkoutEditor() {
+  workoutEditorModal.hidden = true;
+}
+
+document.getElementById("btn-edit-workout").addEventListener("click", () => openWorkoutEditor());
+document.getElementById("workout-editor-day").addEventListener("change", event => fillWorkoutEditor(event.target.value));
+document.getElementById("workout-editor-cancel").addEventListener("click", closeWorkoutEditor);
+workoutEditorModal.addEventListener("click", event => { if (event.target === workoutEditorModal) closeWorkoutEditor(); });
+
+workoutEditorForm.addEventListener("submit", event => {
+  event.preventDefault();
+  const day = Number(workoutEditorForm.day.value);
+  const exercises = workoutEditorForm.exercises.value
+    .split(/\r?\n/)
+    .map(line => line.replace(/^[-•\d.)\s]+/, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (!exercises.length) return showToast("Adicione pelo menos um exercício.");
+  if (!state.workoutPlan) state.workoutPlan = { source: "Edição manual", parsedAt: null, days: {} };
+  if (!state.workoutPlan.days) state.workoutPlan.days = {};
+  state.workoutPlan.days[day] = {
+    focus: workoutEditorForm.focus.value.trim() || "Treino do dia",
+    exercises: [...new Set(exercises)].slice(0, 30)
+  };
+  state.workoutPlan.parsedAt = new Date().toISOString();
+  const trainingDays = new Set((state.customRoutine?.trainingDays || []).map(Number));
+  trainingDays.add(day);
+  state.customRoutine.trainingDays = [...trainingDays];
+  saveState();
+  closeWorkoutEditor();
+  renderTreino();
+  renderSemana();
+  renderHoje();
+  showToast("Correções do treino salvas.");
+});
+
+document.getElementById("workout-editor-clear").addEventListener("click", () => {
+  const day = Number(workoutEditorForm.day.value);
+  if (!state.workoutPlan?.days?.[day]) return showToast("Este dia ainda não possui exercícios.");
+  if (!window.confirm(`Limpar os exercícios de ${WEEKDAY_NAMES[day]}?`)) return;
+  delete state.workoutPlan.days[day];
+  saveState();
+  fillWorkoutEditor(day);
+  renderTreino();
+  renderSemana();
+  renderHoje();
+  showToast("Exercícios removidos deste dia.");
+});
 
 
 /* ---------------------------------------------------------
@@ -1657,7 +1731,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=17", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=18", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });

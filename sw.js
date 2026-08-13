@@ -4,7 +4,7 @@
    Evita misturar HTML novo com JavaScript antigo após publicações.
    ========================================================= */
 
-const CACHE_VERSION = "v17";
+const CACHE_VERSION = "v18";
 const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 
 // Caminhos relativos ao escopo do service worker — funciona tanto
@@ -13,10 +13,10 @@ const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=17",
-  "./script.js?v=17",
-  "./auth.js?v=17",
-  "./supabase-config.js?v=17",
+  "./style.css?v=18",
+  "./script.js?v=18",
+  "./auth.js?v=18",
+  "./supabase-config.js?v=18",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
