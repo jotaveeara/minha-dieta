@@ -427,38 +427,130 @@ async function extractWorkoutText(file) {
 
 function parseWorkoutPlan(text, fileName) {
   const dayPatterns = [
-    [/\b(domingo|dom)\b/i, 0], [/\b(segunda(?:-feira)?|seg)\b/i, 1],
-    [/\b(terça(?:-feira)?|terca(?:-feira)?|ter)\b/i, 2], [/\b(quarta(?:-feira)?|qua)\b/i, 3],
-    [/\b(quinta(?:-feira)?|qui)\b/i, 4], [/\b(sexta(?:-feira)?|sex)\b/i, 5],
-    [/\b(sábado|sabado|sáb|sab)\b/i, 6]
+    [/^(domingo|dom)\b/i, 0], [/^(segunda(?:\s*-?\s*feira)?|seg)\b/i, 1],
+    [/^(terça(?:\s*-?\s*feira)?|terca(?:\s*-?\s*feira)?|ter)\b/i, 2], [/^(quarta(?:\s*-?\s*feira)?|qua)\b/i, 3],
+    [/^(quinta(?:\s*-?\s*feira)?|qui)\b/i, 4], [/^(sexta(?:\s*-?\s*feira)?|sex)\b/i, 5],
+    [/^(sábado|sabado|sáb|sab)\b/i, 6]
   ];
-  const focusWords = /(pernas?|quadr[ií]ceps|posterior|gl[uú]teos?|peito|costas|ombros?|b[ií]ceps|tr[ií]ceps|braços?|abd[oô]men|cardio|full body)/ig;
-  const ignored = /^(treino|ficha|exerc[ií]cios?|s[eé]ries?|repeti[cç][oõ]es?|descanso|aluno|academia)\s*:?$/i;
-  const lines = String(text || "").split(/\r?\n|\s{3,}/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const musclePattern = /(pernas?|quadr[ií]ceps|posterior|gl[uú]teos?|peito|costas|ombros?|b[ií]ceps|tr[ií]ceps|braços?|abd[oô]men|panturrilha|cardio|full body)/ig;
+  const exerciseEvidence = /\b(s[eé]ries?|repeti[cç][oõ](?:es|e)?|minutos?|horas?)\b/i;
+  const rawLines = String(text || "").split(/\r?\n|\s{3,}/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean);
   const days = {};
   let currentDay = null;
-  for (const line of lines) {
-    const match = dayPatterns.find(([pattern]) => pattern.test(line));
-    if (match && line.length < 100) {
-      currentDay = match[1];
-      if (!days[currentDay]) days[currentDay] = { focus: "", exercises: [] };
-      const focuses = [...line.matchAll(focusWords)].map(item => item[0]);
-      if (focuses.length) days[currentDay].focus = [...new Set(focuses)].join(" + ");
+  let pending = "";
+
+  const cleanText = value => value
+    .replace(/\bsereis\b/gi, "séries")
+    .replace(/\bserie\b/gi, "série")
+    .replace(/\bepisódios\s+(?=repeti)/gi, "")
+    .replace(/\bCross\s+ouver\b/gi, "Crossover")
+    .replace(/\brepetiçõe\b/gi, "repetições")
+    .replace(/\s+([.,:;])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const canonicalFocus = value => {
+    const normalized = value.toLowerCase();
+    if (/quadr[ií]ceps/.test(normalized)) return "Quadríceps";
+    if (/posterior/.test(normalized)) return "Posterior";
+    if (/gl[uú]teo/.test(normalized)) return "Glúteos";
+    if (/peito/.test(normalized)) return "Peito";
+    if (/costas/.test(normalized)) return "Costas";
+    if (/ombro/.test(normalized)) return "Ombros";
+    if (/b[ií]ceps/.test(normalized)) return "Bíceps";
+    if (/tr[ií]ceps/.test(normalized)) return "Tríceps";
+    if (/panturrilha/.test(normalized)) return "Panturrilha";
+    if (/pernas?/.test(normalized)) return "Pernas";
+    if (/cardio/.test(normalized)) return "Cardio";
+    if (/abd[oô]men/.test(normalized)) return "Abdômen";
+    return value.replace(/[.:;]+$/, "").trim();
+  };
+
+  const addFocus = value => {
+    if (currentDay === null) return;
+    const matches = [...value.matchAll(musclePattern)].map(item => canonicalFocus(item[0]));
+    if (/descanso/i.test(value)) matches.push("Descanso ativo");
+    matches.forEach(focus => { if (focus && !days[currentDay].focuses.includes(focus)) days[currentDay].focuses.push(focus); });
+  };
+
+  const inferFocus = exercise => {
+    const rules = [
+      [/barra fixa|remada|puxador|serrote|terra lombar/i, "Costas"],
+      [/supino|voador|crossover|cross over/i, "Peito"],
+      [/rosca|martelo|scott|b[ií]ceps/i, "Bíceps"],
+      [/tr[ií]ceps|corda|testa barra|polia barra/i, "Tríceps"],
+      [/desenvolvimento|eleva[cç][aã]o lateral|eleva[cç][aã]o frontal|encolhimento|crucifixo invertido/i, "Ombros"],
+      [/mesa flexora|cadeira flexora|posterior|eleva[cç][aã]o p[eé]lvica/i, "Posterior"],
+      [/cadeira extensora|leg press|agachamento|quadr[ií]ceps/i, "Quadríceps"],
+      [/panturrilha/i, "Panturrilha"], [/cardio|esteira|bicicleta/i, "Cardio"]
+    ];
+    rules.forEach(([pattern, focus]) => { if (pattern.test(exercise) && !days[currentDay].focuses.includes(focus)) days[currentDay].focuses.push(focus); });
+  };
+
+  const addExerciseBlock = value => {
+    if (currentDay === null || !value) return;
+    let cleaned = cleanText(value)
+      .replace(/(repeti[cç][oõ]es?|minutos?|horas?)\s+(?=[A-ZÀ-Ý])/g, "$1. ");
+    if (!exerciseEvidence.test(cleaned)) {
+      if (musclePattern.test(cleaned) || /descanso\s+de\s+treino/i.test(cleaned)) addFocus(cleaned);
+      musclePattern.lastIndex = 0;
+      return;
+    }
+    const pieces = cleaned
+      .split(/(?<=[.!?])\s+(?=[A-ZÀ-Ý])|\s+\+\s+(?=[^+]*(?:\d+\s*(?:s[eé]ries?|repeti[cç][oõ]|minutos?|horas?)))/i)
+      .map(item => item.replace(/^[-•\d.)\s]+/, "").replace(/[.;]+$/, "").trim())
+      .filter(item => item.length >= 4 && exerciseEvidence.test(item));
+    pieces.forEach(exercise => {
+      const formatted = exercise.charAt(0).toUpperCase() + exercise.slice(1);
+      days[currentDay].exercises.push(formatted);
+      inferFocus(formatted);
+    });
+  };
+
+  const flushPending = () => {
+    if (!pending) return;
+    addExerciseBlock(pending);
+    pending = "";
+  };
+
+  for (const sourceLine of rawLines) {
+    const line = cleanText(sourceLine);
+    const dayMatch = dayPatterns.find(([pattern]) => pattern.test(line));
+    if (dayMatch && line.length < 100) {
+      flushPending();
+      currentDay = dayMatch[1];
+      if (!days[currentDay]) days[currentDay] = { focuses: [], focus: "", exercises: [] };
+      const remainder = line.replace(dayMatch[0], "").replace(/^[\s.:-]+/, "").trim();
+      if (remainder) pending = remainder;
       continue;
     }
-    if (currentDay !== null && line.length >= 3 && line.length <= 120 && !ignored.test(line)) {
-      days[currentDay].exercises.push(line.replace(/^[-•\d.)\s]+/, "").trim());
+    if (currentDay === null) continue;
+    const looksLikeHeading = !exerciseEvidence.test(line) && (musclePattern.test(line) || /descanso\s+(?:de)?\s*treino/i.test(line));
+    musclePattern.lastIndex = 0;
+    if (looksLikeHeading && !pending) {
+      addFocus(line);
+      continue;
     }
+    pending = pending ? `${pending} ${line}` : line;
+    if (/[.!?]$/.test(line) || /\b(repeti[cç][oõ](?:es|e)?|minutos?|horas?)\.?$/i.test(line)) flushPending();
   }
+  flushPending();
+
   Object.values(days).forEach(day => {
-    day.exercises = [...new Set(day.exercises)].filter(Boolean).slice(0, 15);
-    if (!day.focus) {
-      const focus = [...day.exercises.join(" ").matchAll(focusWords)].map(item => item[0]);
-      day.focus = [...new Set(focus)].slice(0, 3).join(" + ") || "Treino do dia";
+    day.exercises = [...new Set(day.exercises)].filter(Boolean).slice(0, 30);
+    let focuses = [...day.focuses];
+    if (focuses.length > 2 && !focuses.includes("Descanso ativo")) focuses = focuses.filter(focus => focus !== "Cardio");
+    day.focus = focuses.slice(0, 5).join(" + ") || "Treino do dia";
+    delete day.focuses;
+  });
+  Object.keys(days).forEach(day => {
+    if (!days[day].exercises.length && !/descanso/i.test(days[day].focus)) delete days[day];
+    else if (!days[day].exercises.length) {
+      days[day].exercises = ["Descanso do treino de força"];
     }
   });
   if (!Object.keys(days).length) throw new Error("Não encontrei dias da semana no documento");
-  return { source: fileName, parsedAt: new Date().toISOString(), days };
+  return { source: fileName, parsedAt: new Date().toISOString(), parserVersion: 2, days };
 }
 
 function renderWorkoutAnalysis() {
@@ -474,6 +566,21 @@ function renderWorkoutAnalysis() {
   });
 }
 
+async function analyzeWorkoutFile(file) {
+  const text = await extractWorkoutText(file);
+  state.workoutPlan = parseWorkoutPlan(text, file.name);
+  const detectedDays = Object.keys(state.workoutPlan.days).map(Number);
+  if (detectedDays.length) state.customRoutine.trainingDays = detectedDays;
+  saveState();
+  const { error } = await cloud.from("profiles").update({ routine_config: state.customRoutine, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+  if (error) throw error;
+  renderWorkoutAnalysis();
+  renderHoje();
+  renderSemana();
+  renderTreino();
+  return detectedDays.length;
+}
+
 document.getElementById("workout-input").addEventListener("change", async event => {
   const file = event.target.files[0];
   event.target.value = "";
@@ -485,17 +592,8 @@ document.getElementById("workout-input").addEventListener("change", async event 
   const analysisStatus = document.getElementById("workout-analysis-status");
   analysisStatus.textContent = "Lendo e analisando o treino…";
   try {
-    const text = await extractWorkoutText(file);
-    state.workoutPlan = parseWorkoutPlan(text, file.name);
-    const detectedDays = Object.keys(state.workoutPlan.days).map(Number);
-    if (detectedDays.length) state.customRoutine.trainingDays = detectedDays;
-    saveState();
-    await cloud.from("profiles").update({ routine_config: state.customRoutine, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
-    renderWorkoutAnalysis();
-    renderHoje();
-    renderSemana();
-    renderTreino();
-    analysisStatus.textContent = `${detectedDays.length} dia(s) de treino identificado(s). Revise o resultado abaixo.`;
+    const detectedDays = await analyzeWorkoutFile(file);
+    analysisStatus.textContent = `${detectedDays} dia(s) de treino identificado(s) e organizados automaticamente.`;
   } catch (analysisError) {
     analysisStatus.textContent = `A leitura automática não foi concluída: ${analysisError.message}. O arquivo ainda será salvo para você revisar.`;
   }
@@ -521,11 +619,37 @@ async function loadWorkoutFiles() {
   box.innerHTML = "";
   if (error) return;
   renderWorkoutAnalysis();
-  (data || []).forEach(documentRow => {
+  (data || []).forEach((documentRow, documentIndex) => {
     const row = document.createElement("div");
     row.className = "workout-file";
     const name = document.createElement("span");
     name.textContent = `${documentRow.file_name} · ${documentRow.status}`;
+    const actions = document.createElement("div");
+    actions.className = "workout-file-actions";
+    const reanalyze = document.createElement("button");
+    reanalyze.type = "button";
+    reanalyze.textContent = "Reanalisar";
+    reanalyze.addEventListener("click", async () => {
+      const status = document.getElementById("workout-analysis-status");
+      status.textContent = "Baixando o arquivo privado e corrigindo a leitura…";
+      reanalyze.disabled = true;
+      const { data: blob, error: downloadError } = await cloud.storage.from("workout-documents").download(documentRow.storage_path);
+      if (downloadError) {
+        status.textContent = "Não foi possível acessar o arquivo para reanálise.";
+        reanalyze.disabled = false;
+        return;
+      }
+      try {
+        const file = new File([blob], documentRow.file_name, { type: blob.type || (/\.pdf$/i.test(documentRow.file_name) ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document") });
+        const count = await analyzeWorkoutFile(file);
+        status.textContent = `${count} dia(s) reorganizado(s) automaticamente com o novo corretor.`;
+        showToast("Treino reanalisado e corrigido.");
+      } catch (analysisError) {
+        status.textContent = `Não foi possível reanalisar: ${analysisError.message}.`;
+      } finally {
+        reanalyze.disabled = false;
+      }
+    });
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "Excluir";
@@ -542,8 +666,13 @@ async function loadWorkoutFiles() {
       }
       await loadWorkoutFiles();
     });
-    row.append(name, remove);
+    actions.append(reanalyze, remove);
+    row.append(name, actions);
     box.appendChild(row);
+    if (documentIndex === 0 && state.workoutPlan?.parserVersion !== 2 && !window.autoWorkoutReanalysisStarted) {
+      window.autoWorkoutReanalysisStarted = true;
+      setTimeout(() => reanalyze.click(), 0);
+    }
   });
 }
 
