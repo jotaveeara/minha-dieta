@@ -399,7 +399,11 @@ h1, h2, h3 { margin: 0; }
 .es-value { font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .es-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
-.chart-canvas { width: 100%; height: 200px; display: block; background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); }
+.chart-wrap { position: relative; }
+.chart-canvas { width: 100%; height: 200px; display: block; background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); touch-action: none; }
+.chart-tooltip { position: absolute; transform: translateX(-50%); pointer-events: none; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 82px; padding: 7px 9px; border-radius: 8px; background: #080a0c; border: 1px solid var(--surface-border); color: var(--text); font-size: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
+.chart-tooltip span { color: var(--text-muted); font-size: 10px; }
+.chart-tooltip[hidden] { display: none !important; }
 .chart-hint { text-align: center; font-size: 12.5px; color: var(--text-faint); margin: 8px 0 0; }
 
 .evo-form { background: var(--surface); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); padding: 16px; margin-top: 8px; }
@@ -493,6 +497,10 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--amber); out
 .backup-buttons { display: flex; flex-direction: column; gap: 10px; }
 .backup-status { font-size: 12.5px; color: var(--green); margin: 10px 0 0; min-height: 1em; }
 .danger-block { border-color: rgba(232,87,74,0.3); }
+.week-free-btn { width: 100%; margin-top: 12px; padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(232,163,61,.4); background: var(--amber-dim); color: var(--amber); font-weight: 700; }
+.week-free-btn.selected { border-color: rgba(82,196,122,.45); background: rgba(82,196,122,.12); color: #67d58d; }
+.signout-block { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--surface-border); }
+.btn-signout-danger { width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1px solid rgba(232,87,74,.55); background: rgba(232,87,74,.12); color: #ff6258; font-weight: 750; font-size: 14px; }
 .app-version { text-align: center; font-size: 11.5px; color: var(--text-faint); margin: 22px 0 6px; }
 
 /* ============= BOTTOM NAV ============= */

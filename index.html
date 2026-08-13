@@ -85,6 +85,7 @@
           <label>Idade<input type="number" name="idade" min="13" max="120" required></label>
           <label>Peso atual (kg)<input type="number" name="peso" min="20" max="500" step="0.1" required></label>
           <label>Altura (m)<input type="number" name="altura" min="0.5" max="3" step="0.01" required></label>
+          <label>Data esperada para o resultado<input type="date" name="expected_result_date" required></label>
         </div>
         <label>Objetivo principal
           <select name="objetivo" required>
@@ -181,15 +182,15 @@
   <!-- ===================== VIEW: HOJE ===================== -->
   <main class="view" id="view-hoje" data-view="hoje">
 
-    <section class="project-strip" id="project-strip">
+    <section class="project-strip goal-strip">
       <div class="project-strip-item">
-        <span class="ps-value" id="ps-day-count">—</span>
-        <span class="ps-label">dia do projeto</span>
+        <span class="ps-value" id="home-goal">—</span>
+        <span class="ps-label">objetivo</span>
       </div>
       <div class="project-strip-div"></div>
       <div class="project-strip-item">
-        <span class="ps-value">fev/2027</span>
-        <span class="ps-label">meta — ex gordo</span>
+        <span class="ps-value" id="home-target-date">—</span>
+        <span class="ps-label">resultado esperado</span>
       </div>
     </section>
 
@@ -261,7 +262,7 @@
   <!-- ===================== VIEW: SEMANA ===================== -->
   <main class="view" id="view-semana" data-view="semana" hidden>
     <h1 class="view-title">Semana</h1>
-    <p class="view-subtitle">Segunda a sexta = treino. Fins de semana = descanso.</p>
+    <p class="view-subtitle" id="week-subtitle">Sua semana personalizada.</p>
 
     <div class="week-grid" id="week-grid"></div>
 
@@ -291,7 +292,10 @@
       </div>
     </div>
 
-    <canvas id="chart-peso" width="600" height="240" class="chart-canvas"></canvas>
+    <div class="chart-wrap">
+      <canvas id="chart-peso" width="600" height="240" class="chart-canvas"></canvas>
+      <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+    </div>
     <p class="chart-hint" id="chart-hint">Registre seu peso para ver o gráfico de evolução.</p>
 
     <form class="evo-form" id="form-peso">
@@ -304,10 +308,12 @@
           <input type="number" name="peso" step="0.1" min="0" required>
         </label>
         <label>Cintura (cm)
-          <input type="number" name="cintura" step="0.1" min="0">
+          <input type="text" name="cintura" inputmode="decimal" placeholder="Ex.: 85">
+          <small>Aceita 85 cm, 0,85 m ou 850 mm.</small>
         </label>
         <label>Braço (cm)
-          <input type="number" name="braco" step="0.1" min="0">
+          <input type="text" name="braco" inputmode="decimal" placeholder="Ex.: 36">
+          <small>Aceita 36 cm, 0,36 m ou 360 mm.</small>
         </label>
       </div>
       <label class="evo-obs">Observação
@@ -337,12 +343,11 @@
     <section class="profile-block">
       <h2 class="section-title">Meus dados</h2>
       <div class="profile-grid">
-        <div><span>Nome</span><b id="p-nome">João</b></div>
+        <div><span>Nome</span><b id="p-nome">—</b></div>
         <div><span>Idade</span><b id="p-idade">20 anos</b></div>
         <div><span>Altura</span><b id="p-altura">1,90 m</b></div>
         <div><span>Peso inicial</span><b id="p-peso-inicial">90 kg</b></div>
-        <div><span>Início dos treinos</span><b>28/08/2026</b></div>
-        <div><span>Meta</span><b>fev/2027</b></div>
+        <div><span>Data esperada</span><b id="p-meta-data">—</b></div>
       </div>
       <p class="profile-goal" id="p-objetivo">Defina seu objetivo em Minha conta.</p>
     </section>
@@ -363,6 +368,9 @@
         <label>Objetivo
           <input type="text" name="objetivo" placeholder="Ex.: ganhar massa muscular">
         </label>
+        <label>Data esperada para o resultado
+          <input type="date" name="expected_result_date">
+        </label>
         <button type="submit" class="btn-primary">Salvar perfil</button>
       </form>
       <p class="sync-status" id="sync-status">Verificando sincronização…</p>
@@ -374,10 +382,6 @@
       <input type="file" id="workout-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
       <button class="btn-secondary" id="btn-upload-workout">Enviar PDF/DOCX</button>
       <div class="workout-files" id="workout-files"></div>
-    </section>
-
-    <section class="settings-block">
-      <button class="btn-secondary" id="btn-signout">Sair da conta</button>
     </section>
 
     <section class="settings-block">
@@ -424,7 +428,7 @@
       </label>
     </section>
 
-    <section class="settings-block">
+    <section class="settings-block" hidden>
       <h2 class="section-title">Backup dos dados</h2>
       <p class="settings-hint">Exporte periodicamente — útil se você trocar de celular. Fotos não entram no arquivo por serem grandes; ficam salvas só neste aparelho.</p>
       <div class="backup-buttons">
@@ -435,12 +439,16 @@
       <p class="backup-status" id="backup-status"></p>
     </section>
 
-    <section class="settings-block danger-block">
+    <section class="settings-block danger-block" hidden>
       <h2 class="section-title">Zona de risco</h2>
       <button class="btn-danger" id="btn-reset-all">Apagar todos os dados deste aparelho</button>
     </section>
 
-    <p class="app-version">Rotina — João · v1.0</p>
+    <section class="signout-block">
+      <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
+    </section>
+
+    <p class="app-version">Minha Dieta · v1.2</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->

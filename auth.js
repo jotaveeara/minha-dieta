@@ -56,6 +56,16 @@ function showOnboarding(profile = {}) {
   form.peso.value = profile.peso || "";
   form.altura.value = profile.altura || "";
   form.objetivo.value = profile.objetivo || "";
+  const defaultTarget = new Date();
+  defaultTarget.setMonth(defaultTarget.getMonth() + 6);
+  form.expected_result_date.value = profile.expected_result_date || defaultTarget.toISOString().slice(0, 10);
+  const routine = profile.routine_config || {};
+  if (routine.wakeTime) form.wake_time.value = routine.wakeTime;
+  if (routine.sleepTime) form.sleep_time.value = routine.sleepTime;
+  if (routine.mealCount) form.meal_count.value = routine.mealCount;
+  if (routine.trainingTime) form.training_time.value = routine.trainingTime;
+  if (routine.freeMealDay !== null && routine.freeMealDay !== undefined) form.free_meal_day.value = routine.freeMealDay;
+  form.querySelectorAll('input[name="training_days"]').forEach(input => input.checked = (routine.trainingDays || []).map(Number).includes(Number(input.value)));
   setOnboardingStep(0);
 }
 
@@ -160,7 +170,7 @@ async function loadUserData(user) {
   window.activateUserPhotos(user.id);
   document.getElementById("account-email").textContent = user.email;
   const [{ data: profile, error: profileError }, { data: remote, error: stateError }] = await Promise.all([
-    cloud.from("profiles").select("nome,idade,peso,altura,objetivo,onboarding_completed,routine_config").single(),
+    cloud.from("profiles").select("nome,idade,peso,altura,objetivo,expected_result_date,onboarding_completed,routine_config").single(),
     cloud.from("app_states").select("state").maybeSingle()
   ]);
   if (profileError) console.error("Falha ao carregar perfil", profileError);
@@ -183,13 +193,17 @@ async function loadUserData(user) {
     form.peso.value = profile.peso || state.profile.pesoInicial || "";
     form.altura.value = profile.altura || state.profile.altura || "";
     form.objetivo.value = profile.objetivo || "";
+    form.expected_result_date.value = profile.expected_result_date || "";
     if (profile.nome) state.profile.nome = profile.nome;
     if (profile.peso) state.profile.pesoInicial = Number(profile.peso);
     if (profile.altura) state.profile.altura = Number(profile.altura);
+    if (profile.idade) state.profile.idade = Number(profile.idade);
+    if (profile.expected_result_date) state.profile.metaData = profile.expected_result_date;
+    if (profile.objetivo) state.profile.objetivo = profile.objetivo;
     document.getElementById("p-objetivo").textContent = profile.objetivo ? `Objetivo: ${profile.objetivo}` : "Defina seu objetivo em Minha conta.";
   }
   loadingCloudState = false;
-  if (!profile?.onboarding_completed) {
+  if (!profile?.onboarding_completed || !profile?.expected_result_date) {
     showOnboarding(profile || {});
   } else {
     if (profile.routine_config && Object.keys(profile.routine_config).length) {
@@ -275,6 +289,7 @@ document.getElementById("onboarding-form").addEventListener("submit", async even
     peso: Number(form.peso.value),
     altura: Number(form.altura.value),
     objetivo: form.objetivo.value,
+    expected_result_date: form.expected_result_date.value,
     onboarding_completed: true,
     routine_config: routine,
     updated_at: new Date().toISOString()
@@ -291,6 +306,13 @@ document.getElementById("onboarding-form").addEventListener("submit", async even
   state.profile.idade = profile.idade;
   state.profile.pesoInicial = profile.peso;
   state.profile.altura = profile.altura;
+  state.profile.metaData = profile.expected_result_date;
+  state.profile.objetivo = profile.objetivo;
+  const objective = profile.objetivo.toLowerCase();
+  const calorieAdjustment = objective.includes("reduzir") ? -300 : objective.includes("ganhar") ? 250 : 0;
+  state.metas.kcal = Math.max(1200, Math.round((profile.peso * 30 + calorieAdjustment) / 50) * 50);
+  state.metas.proteinaMin = Math.round(profile.peso * 1.6);
+  state.metas.proteinaMax = Math.round(profile.peso * 2);
   state.metas.aguaMetaMl = Math.round(Number(form.water_goal.value) * 1000);
   state.customRoutine = routine;
   state.onboardingComplete = true;
@@ -324,6 +346,7 @@ document.getElementById("form-account").addEventListener("submit", async event =
     peso: form.peso.value ? Number(form.peso.value) : null,
     altura: form.altura.value ? Number(form.altura.value) : null,
     objetivo: form.objetivo.value.trim(),
+    expected_result_date: form.expected_result_date.value || null,
     updated_at: new Date().toISOString()
   };
   const { error } = await cloud.from("profiles").upsert(profile);
@@ -331,6 +354,8 @@ document.getElementById("form-account").addEventListener("submit", async event =
   state.profile.nome = profile.nome;
   if (profile.peso) state.profile.pesoInicial = profile.peso;
   if (profile.altura) state.profile.altura = profile.altura;
+  if (profile.expected_result_date) state.profile.metaData = profile.expected_result_date;
+  state.profile.objetivo = profile.objetivo;
   document.getElementById("p-objetivo").textContent = profile.objetivo ? `Objetivo: ${profile.objetivo}` : "Defina seu objetivo em Minha conta.";
   saveState();
   renderHoje();

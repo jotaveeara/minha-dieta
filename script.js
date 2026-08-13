@@ -1,5 +1,5 @@
 /* =========================================================
-   ROTINA — JOÃO
+   MINHA DIETA
    App state, persistence (localStorage) e geração da rotina
    ========================================================= */
 
@@ -14,12 +14,12 @@ let ACTIVE_USER_ID = null;
 
 const DEFAULT_STATE = {
   profile: {
-    nome: "João",
-    idade: 20,
-    altura: 1.90,
-    pesoInicial: 90,
-    inicioTreinos: "2026-08-28",
-    metaData: "2027-02-01"
+    nome: "Usuário",
+    idade: null,
+    altura: null,
+    pesoInicial: null,
+    inicioTreinos: null,
+    metaData: null
   },
   metas: {
     kcal: 2500,
@@ -554,11 +554,8 @@ function renderHoje() {
 
   document.getElementById("header-greeting").textContent = `Bom dia, ${state.profile.nome}`;
   document.getElementById("header-day-label").textContent = `${WEEKDAY_NAMES[wd]} · ${fmtDateBR(iso)}`;
-
-  // dia do projeto
-  const inicio = state.profile.inicioTreinos;
-  const diff = daysBetween(inicio, now) + 1;
-  document.getElementById("ps-day-count").textContent = diff > 0 ? `#${diff}` : "em breve";
+  document.getElementById("home-goal").textContent = state.profile.objetivo || "Definir objetivo";
+  document.getElementById("home-target-date").textContent = state.profile.metaData ? fmtDateBR(state.profile.metaData) : "Definir data";
 
   // toggle de segunda-feira
   const mondayBox = document.getElementById("monday-toggle");
@@ -1081,51 +1078,56 @@ function renderSemana() {
   grid.innerHTML = "";
   const today = new Date();
   const monday = getMondayOfWeek(today);
+  const custom = !!state.customRoutine?.enabled;
+  document.getElementById("week-subtitle").textContent = custom
+    ? "Treinos, compromissos e refeição livre conforme sua configuração."
+    : "Sua programação semanal.";
 
   for (let i = 1; i <= 7; i++) {
     const wdIndex = i === 7 ? 0 : i; // 1..6 seg-sáb, 7->0 domingo
-    const meta = WEEK_META[i];
     const dateForDay = new Date(monday);
     dateForDay.setDate(monday.getDate() + (i - 1));
     const isoDay = isoFromDate(dateForDay);
     const isToday = isoDay === todayISO();
+    const plan = getDayPlan(dateForDay);
+    const dayName = WEEKDAY_NAMES[wdIndex].charAt(0) + WEEKDAY_NAMES[wdIndex].slice(1).toLowerCase();
+    const training = plan.eventos.some(event => event.type === "treino");
+    const commitment = plan.eventos.find(event => event.type === "periodo");
+    const plannedFree = Number(state.customRoutine?.freeMealDay) === wdIndex;
+    const badge = training ? "treino" : "descanso";
+    const badgeLabel = training ? "treino" : "descanso";
+    const details = [];
+    if (commitment) details.push(`${commitment.title} ${commitment.time}`);
+    if (training) {
+      const workout = plan.eventos.find(event => event.type === "treino");
+      details.push(`Treino ${workout.time}`);
+    } else details.push("Sem treino programado");
+    if (plannedFree) details.push("dia preferido para refeição livre");
 
     const card = document.createElement("div");
     card.className = "week-day-card" + (isToday ? " today" : "");
-    const badgeLabel = meta.badge === "faculdade" ? "faculdade + treino" : meta.badge === "treino" ? "treino" : "descanso";
-
-    let toggleHtml = "";
-    if (i === 1) { // segunda
-      const ov = getDayOverride(isoDay);
-      const checked = ov && ov.faculdade === true ? "checked" : "";
-      toggleHtml = `
-        <div class="wd-toggle-row">
-          <span>Aula presencial nesta segunda (${fmtDateBR(isoDay)})</span>
-          <label class="switch">
-            <input type="checkbox" data-monday-iso="${isoDay}" ${checked}>
-            <span class="switch-track"></span><span class="switch-thumb"></span>
-          </label>
-        </div>`;
-    }
+    const weekUse = state.freeMealUse[getISOWeekKey(dateForDay)];
+    const isMarkedFree = !!weekUse && weekUse.data === isoDay;
 
     card.innerHTML = `
       <div class="wd-top">
-        <span class="wd-name">${meta.nome}${isToday ? " · hoje" : ""}</span>
-        <span class="wd-badge ${meta.badge}">${badgeLabel}</span>
+        <span class="wd-name">${dayName}${isToday ? " · hoje" : ""}</span>
+        <span class="wd-badge ${badge}">${badgeLabel}</span>
       </div>
-      <p class="wd-sub">${meta.info}</p>
-      ${toggleHtml}
+      <p class="wd-sub">${details.join(" · ")}.</p>
+      ${plannedFree || isMarkedFree ? `<button class="week-free-btn ${isMarkedFree ? "selected" : ""}" data-free-date="${isoDay}">${isMarkedFree ? "Refeição livre marcada ✓" : "Marcar refeição livre neste dia"}</button>` : ""}
     `;
     grid.appendChild(card);
   }
 
-  grid.querySelectorAll("[data-monday-iso]").forEach(input => {
-    input.addEventListener("change", () => {
-      const iso = input.dataset.mondayIso;
-      state.dayOverrides[iso] = { faculdade: input.checked };
-      saveState();
+  grid.querySelectorAll("[data-free-date]").forEach(button => {
+    button.addEventListener("click", () => {
+      const iso = button.dataset.freeDate;
+      const date = new Date(iso + "T12:00:00");
+      const meal = [...getDayPlan(date).eventos].reverse().find(event => event.type === "refeicao");
+      if (!meal) return showToast("Não existe refeição programada nesse dia.");
+      toggleFreeMeal(iso, meal.id);
       renderSemana();
-      showToast("Segunda-feira atualizada.");
     });
   });
 
@@ -1199,6 +1201,8 @@ function renderEvolucao() {
   renderFotos();
 }
 
+let weightChartPoints = [];
+
 function drawWeightChart(log) {
   const canvas = document.getElementById("chart-peso");
   const dpr = window.devicePixelRatio || 1;
@@ -1210,6 +1214,7 @@ function drawWeightChart(log) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssW, cssH);
 
+  weightChartPoints = [];
   if (log.length === 0) return;
 
   const pad = { l: 34, r: 14, t: 16, b: 22 };
@@ -1240,8 +1245,9 @@ function drawWeightChart(log) {
   const pts = log.map((e, i) => {
     const x = pad.l + (log.length === 1 ? w / 2 : (w / (log.length - 1)) * i);
     const y = pad.t + h - ((e.peso - min) / (max - min)) * h;
-    return { x, y };
+    return { x, y, entry: e };
   });
+  weightChartPoints = pts;
 
   // linha
   ctx.beginPath();
@@ -1271,6 +1277,31 @@ function drawWeightChart(log) {
   });
 }
 
+const weightCanvas = document.getElementById("chart-peso");
+const weightTooltip = document.getElementById("chart-tooltip");
+weightCanvas.addEventListener("pointermove", event => {
+  if (!weightChartPoints.length) return;
+  const rect = weightCanvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const nearest = weightChartPoints.reduce((best, point) => Math.abs(point.x - x) < Math.abs(best.x - x) ? point : best);
+  weightTooltip.innerHTML = `<b>${nearest.entry.peso.toFixed(1).replace(".", ",")} kg</b><span>${fmtDateBR(nearest.entry.data)}</span>`;
+  weightTooltip.style.left = `${Math.max(44, Math.min(rect.width - 44, nearest.x))}px`;
+  weightTooltip.style.top = `${Math.max(8, nearest.y - 52)}px`;
+  weightTooltip.hidden = false;
+});
+weightCanvas.addEventListener("pointerleave", () => { weightTooltip.hidden = true; });
+
+function parseMeasurement(value, min, max) {
+  const normalized = String(value || "").trim().replace(",", ".");
+  if (!normalized) return null;
+  let amount = Number(normalized);
+  if (!Number.isFinite(amount)) return NaN;
+  if (amount > 0 && amount <= 3) amount *= 100;
+  else if (amount > max && amount <= max * 10) amount /= 10;
+  if (amount < min || amount > max) return NaN;
+  return Math.round(amount * 10) / 10;
+}
+
 document.getElementById("form-peso").addEventListener("submit", (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -1278,11 +1309,13 @@ document.getElementById("form-peso").addEventListener("submit", (e) => {
     id: "w_" + Date.now(),
     data: fd.get("data") || todayISO(),
     peso: parseFloat(fd.get("peso")),
-    cintura: fd.get("cintura") ? parseFloat(fd.get("cintura")) : null,
-    braco: fd.get("braco") ? parseFloat(fd.get("braco")) : null,
+    cintura: parseMeasurement(fd.get("cintura"), 30, 250),
+    braco: parseMeasurement(fd.get("braco"), 10, 100),
     obs: (fd.get("obs") || "").trim()
   };
   if (isNaN(entry.peso)) { showToast("Informe um peso válido."); return; }
+  if (Number.isNaN(entry.cintura)) { showToast("Informe a cintura em centímetros, entre 30 e 250."); return; }
+  if (Number.isNaN(entry.braco)) { showToast("Informe o braço em centímetros, entre 10 e 100."); return; }
   state.weightLog.push(entry);
   saveState();
   e.target.reset();
@@ -1401,9 +1434,10 @@ document.getElementById("foto-input").addEventListener("change", (e) => {
 --------------------------------------------------------- */
 function renderPerfil() {
   document.getElementById("p-nome").textContent = state.profile.nome;
-  document.getElementById("p-idade").textContent = state.profile.idade + " anos";
-  document.getElementById("p-altura").textContent = Number(state.profile.altura).toFixed(2).replace(".", ",") + " m";
-  document.getElementById("p-peso-inicial").textContent = Number(state.profile.pesoInicial).toFixed(1).replace(".", ",") + " kg";
+  document.getElementById("p-idade").textContent = state.profile.idade ? state.profile.idade + " anos" : "—";
+  document.getElementById("p-altura").textContent = state.profile.altura ? Number(state.profile.altura).toFixed(2).replace(".", ",") + " m" : "—";
+  document.getElementById("p-peso-inicial").textContent = state.profile.pesoInicial ? Number(state.profile.pesoInicial).toFixed(1).replace(".", ",") + " kg" : "—";
+  document.getElementById("p-meta-data").textContent = state.profile.metaData ? fmtDateBR(state.profile.metaData) : "—";
 
   const f = document.getElementById("form-metas");
   f.kcal.value = state.metas.kcal;
@@ -1429,6 +1463,7 @@ document.getElementById("form-metas").addEventListener("submit", (e) => {
   const aguaL = parseFloat(fd.get("aguaMeta"));
   if (aguaL) state.metas.aguaMetaMl = Math.round(aguaL * 1000);
   saveState();
+  renderHoje();
   showToast("Metas atualizadas.");
 });
 

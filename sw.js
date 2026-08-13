@@ -4,7 +4,7 @@
    em segundo plano. Funciona 100% offline após a 1ª visita.
    ========================================================= */
 
-const CACHE_VERSION = "v12";
+const CACHE_VERSION = "v13";
 const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 
 // Caminhos relativos ao escopo do service worker — funciona tanto
