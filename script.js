@@ -516,6 +516,7 @@ function switchView(target) {
   navBtns.forEach(b => b.classList.toggle("active", b.dataset.target === target));
   if (target === "hoje") renderHoje();
   if (target === "semana") renderSemana();
+  if (target === "treino") renderTreino();
   if (target === "evolucao") renderEvolucao();
   if (target === "perfil") renderPerfil();
   window.scrollTo({ top: 0 });
@@ -632,7 +633,7 @@ function renderChecklist(plan, iso) {
   }
 
   plan.eventos.forEach(ev => {
-    if (ev.type === "lembrete" || ev.type === "sono" || ev.type === "periodo") return;
+    if (ev.type === "lembrete" || ev.type === "sono" || ev.type === "periodo" || ev.type === "treino") return;
     const done = !!comp[ev.id];
     const li = document.createElement("li");
     li.className = "checklist-item" + (done ? " done" : "");
@@ -676,6 +677,7 @@ function renderTimeline(plan, iso) {
   }
 
   plan.eventos.forEach(ev => {
+    if (ev.type === "treino") return;
     const done = !!comp[ev.id];
     const item = document.createElement("div");
     item.className = `t-item type-${ev.type}` + (done ? " done" : "");
@@ -1153,9 +1155,99 @@ function renderFreeMealStatus() {
   box.innerHTML = `Usada em <b>${fmtDateBR(use.data)}</b>. Para trocar, desmarque a refeição correspondente na tela Hoje.`;
 }
 
+/* ---------------------------------------------------------
+   16. RENDER — TREINO SEPARADO DA ALIMENTAÇÃO
+--------------------------------------------------------- */
+function createExerciseList(exercises) {
+  const list = document.createElement("ol");
+  list.className = "training-exercises";
+  exercises.forEach(exercise => {
+    const item = document.createElement("li");
+    item.textContent = exercise;
+    list.appendChild(item);
+  });
+  return list;
+}
+
+function renderTreino() {
+  const today = new Date();
+  const wd = today.getDay();
+  const iso = todayISO();
+  const configured = (state.customRoutine?.trainingDays || []).map(Number).includes(wd);
+  const workout = state.workoutPlan?.days?.[wd];
+  const completion = getCompletionsForDate(iso);
+  const todayBox = document.getElementById("training-today");
+  todayBox.innerHTML = "";
+
+  const heading = document.createElement("div");
+  heading.className = "training-heading";
+  const headingText = document.createElement("div");
+  const eyebrow = document.createElement("span");
+  eyebrow.textContent = "TREINO DE HOJE";
+  const title = document.createElement("h2");
+  title.textContent = configured ? (workout?.focus || "Treino programado") : "Dia sem treino";
+  headingText.append(eyebrow, title);
+  if (configured) {
+    const time = document.createElement("b");
+    time.textContent = state.customRoutine?.trainingTime || "—";
+    heading.append(headingText, time);
+  } else heading.appendChild(headingText);
+  todayBox.appendChild(heading);
+
+  if (!configured) {
+    const empty = document.createElement("p");
+    empty.className = "training-empty";
+    empty.textContent = "Nenhum treino foi programado para hoje. Você pode alterar os dias em Perfil → Personalizar minha rotina.";
+    todayBox.appendChild(empty);
+  } else {
+    if (workout?.exercises?.length) todayBox.appendChild(createExerciseList(workout.exercises));
+    else {
+      const empty = document.createElement("p");
+      empty.className = "training-empty";
+      empty.textContent = "O dia está programado, mas ainda não há exercícios identificados. Envie um PDF/DOCX ou ajuste seu plano.";
+      todayBox.appendChild(empty);
+    }
+    const doneButton = document.createElement("button");
+    doneButton.className = "training-done-btn" + (completion.treino ? " completed" : "");
+    doneButton.textContent = completion.treino ? "Treino concluído ✓" : "Marcar treino como concluído";
+    doneButton.addEventListener("click", () => {
+      completion.treino = !completion.treino;
+      saveState();
+      renderTreino();
+    });
+    todayBox.appendChild(doneButton);
+  }
+
+  const weekBox = document.getElementById("training-week-list");
+  weekBox.innerHTML = "";
+  for (let day = 1; day <= 7; day++) {
+    const dayIndex = day === 7 ? 0 : day;
+    const active = (state.customRoutine?.trainingDays || []).map(Number).includes(dayIndex);
+    if (!active) continue;
+    const dayWorkout = state.workoutPlan?.days?.[dayIndex];
+    const card = document.createElement("article");
+    card.className = "training-day-card";
+    const cardHead = document.createElement("div");
+    const dayName = document.createElement("b");
+    dayName.textContent = WEEKDAY_NAMES[dayIndex];
+    const focus = document.createElement("span");
+    focus.textContent = dayWorkout?.focus || "Treino programado";
+    cardHead.append(dayName, focus);
+    card.appendChild(cardHead);
+    if (dayWorkout?.exercises?.length) card.appendChild(createExerciseList(dayWorkout.exercises));
+    weekBox.appendChild(card);
+  }
+  if (!weekBox.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "training-empty";
+    empty.textContent = "Nenhum dia de treino selecionado.";
+    weekBox.appendChild(empty);
+  }
+}
+
 
 /* ---------------------------------------------------------
-   16. RENDER — EVOLUÇÃO (peso, medidas, gráfico, fotos)
+   17. RENDER — EVOLUÇÃO (peso, medidas, gráfico, fotos)
 --------------------------------------------------------- */
 function renderEvolucao() {
   document.getElementById("evo-peso-inicial").textContent = state.profile.pesoInicial + " kg";

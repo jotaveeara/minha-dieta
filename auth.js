@@ -393,6 +393,7 @@ document.getElementById("form-routine").addEventListener("submit", async event =
   saveState();
   renderHoje();
   renderSemana();
+  renderTreino();
   renderPerfil();
   showToast("Rotina atualizada.");
 });
@@ -493,6 +494,7 @@ document.getElementById("workout-input").addEventListener("change", async event 
     renderWorkoutAnalysis();
     renderHoje();
     renderSemana();
+    renderTreino();
     analysisStatus.textContent = `${detectedDays.length} dia(s) de treino identificado(s). Revise o resultado abaixo.`;
   } catch (analysisError) {
     analysisStatus.textContent = `A leitura automática não foi concluída: ${analysisError.message}. O arquivo ainda será salvo para você revisar.`;
@@ -536,6 +538,7 @@ async function loadWorkoutFiles() {
         saveState();
         renderHoje();
         renderSemana();
+        renderTreino();
       }
       await loadWorkoutFiles();
     });
