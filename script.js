@@ -29,6 +29,12 @@ const DEFAULT_STATE = {
     aguaMetaMl: 3000
   },
   segundaConfig: { inicio: "08:00", fim: "10:00" },
+  onboardingComplete: false,
+  customRoutine: {
+    enabled: false, wakeTime: "07:00", sleepTime: "23:00", mealCount: 4,
+    trainingDays: [], trainingTime: "18:00", freeMealDay: null,
+    commitment: { enabled: false, name: "", days: [], start: "08:00", end: "12:00" }
+  },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
   dayOverrides: {},          // { "2026-08-17": { faculdade: true } }
@@ -243,6 +249,59 @@ function ceia(id, time) {
   });
 }
 
+function genericMeal(id, time, title, desc = "Registre abaixo os alimentos e quantidades consumidos nesta refeição.") {
+  return mkMeal({ id, time, title, desc, kcal: 0, proteina: 0 });
+}
+
+function minutesToTime(total) {
+  const normalized = ((Math.round(total) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+}
+
+function timeToMinutes(value, fallback = 420) {
+  if (!/^\d{2}:\d{2}$/.test(value || "")) return fallback;
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function gerarDiaPersonalizado(dateObj) {
+  const cfg = state.customRoutine || DEFAULT_STATE.customRoutine;
+  const wd = dateObj.getDay();
+  const events = [];
+  events.push(mkLembrete({ id: "acordar", time: cfg.wakeTime, title: "Início do dia", desc: "Horário habitual informado no seu perfil." }));
+
+  const mealCount = Math.max(3, Math.min(6, Number(cfg.mealCount) || 4));
+  const wake = timeToMinutes(cfg.wakeTime);
+  const sleep = timeToMinutes(cfg.sleepTime, 1380);
+  const awakeDuration = sleep > wake ? sleep - wake : sleep + 1440 - wake;
+  const mealTitles = mealCount === 3 ? ["Café da manhã", "Almoço", "Jantar"] :
+    mealCount === 4 ? ["Café da manhã", "Almoço", "Lanche", "Jantar"] :
+    mealCount === 5 ? ["Café da manhã", "Lanche da manhã", "Almoço", "Lanche da tarde", "Jantar"] :
+    ["Café da manhã", "Lanche da manhã", "Almoço", "Lanche da tarde", "Jantar", "Ceia"];
+  mealTitles.forEach((title, index) => {
+    const position = mealCount === 1 ? 0 : index / (mealCount - 1);
+    const minute = wake + 45 + position * Math.max(120, awakeDuration - 120);
+    const isPlannedFreeMeal = Number(cfg.freeMealDay) === wd && index === mealTitles.length - 1;
+    events.push(genericMeal(
+      `custom_meal_${index + 1}`,
+      minutesToTime(minute),
+      isPlannedFreeMeal ? "Refeição livre planejada" : title,
+      isPlannedFreeMeal
+        ? "Dia escolhido no seu perfil para a refeição livre. Registre normalmente o que consumir."
+        : undefined
+    ));
+  });
+
+  if (cfg.commitment?.enabled && (cfg.commitment.days || []).map(Number).includes(wd)) {
+    events.push(mkPeriodo({ id: "custom_commitment", time: `${cfg.commitment.start}–${cfg.commitment.end}`, title: cfg.commitment.name || "Compromisso", desc: "Horário configurado no seu perfil." }));
+  }
+  const isTraining = (cfg.trainingDays || []).map(Number).includes(wd);
+  if (isTraining) events.push(mkTreino({ id: "treino", time: cfg.trainingTime, title: "Treino", desc: "Os exercícios serão adicionados quando você importar ou montar seu plano." }));
+  events.push(mkSono({ id: "dormir", time: cfg.sleepTime, title: "Encerrar o dia", desc: "Horário habitual informado no seu perfil." }));
+  events.sort((a, b) => timeToMinutes(String(a.time).slice(0, 5), 9999) - timeToMinutes(String(b.time).slice(0, 5), 9999));
+  return { tipo: "personalizado", isTreino: isTraining, eventos: events };
+}
+
 /* ---------------------------------------------------------
    5. TEMPLATES POR DIA DA SEMANA
    0=domingo … 6=sábado
@@ -349,6 +408,7 @@ function getDayOverride(iso) {
 }
 
 function getDayPlan(dateObj) {
+  if (state.customRoutine?.enabled) return gerarDiaPersonalizado(dateObj);
   const iso = isoFromDate(dateObj);
   const wd = dateObj.getDay(); // 0=domingo
 
@@ -503,7 +563,7 @@ function renderHoje() {
   // toggle de segunda-feira
   const mondayBox = document.getElementById("monday-toggle");
   const ov = getDayOverride(iso);
-  if (wd === 1 && (!ov || ov.faculdade === undefined)) {
+  if (!state.customRoutine?.enabled && wd === 1 && (!ov || ov.faculdade === undefined)) {
     mondayBox.hidden = false;
   } else {
     mondayBox.hidden = true;
@@ -515,7 +575,7 @@ function renderHoje() {
 
   // alerta de sono (ter/qua/qui — dias de faculdade com pouca janela de sono)
   const sleepBox = document.getElementById("sleep-alert");
-  if (wd === 2 || wd === 3 || wd === 4) {
+  if (!state.customRoutine?.enabled && (wd === 2 || wd === 3 || wd === 4)) {
     sleepBox.hidden = false;
     document.getElementById("sleep-alert-text").textContent = "Seu sono hoje está abaixo do ideal para recuperação muscular.";
   } else if (wd === 1 && ov && ov.faculdade === true) {

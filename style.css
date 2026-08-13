@@ -83,6 +83,25 @@ button, input, select, textarea {
 .workout-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workout-file button { border: 0; background: transparent; color: var(--coral); }
 
+/* ============= ONBOARDING ============= */
+.onboarding-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.onboarding-card { width: 100%; max-width: 520px; border: 1px solid var(--surface-border); background: var(--surface); border-radius: 24px; padding: 22px 18px; }
+.onboarding-progress { height: 5px; border-radius: 8px; background: var(--surface-2); overflow: hidden; margin-bottom: 20px; }
+.onboarding-progress span { display: block; width: 25%; height: 100%; background: var(--amber); transition: width .2s ease; }
+.onboarding-step h1 { font-size: 25px; margin-bottom: 7px; }
+.onboarding-step > p { color: var(--text-muted); font-size: 13px; line-height: 1.45; margin: 0 0 18px; }
+.onboarding-step label { display: flex; flex-direction: column; gap: 6px; color: var(--text-muted); font-size: 12px; font-weight: 650; margin-bottom: 12px; }
+.onboarding-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.weekday-picker { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 10px 0 18px; }
+.weekday-picker label { margin: 0; }
+.weekday-picker input { position: absolute; opacity: 0; pointer-events: none; }
+.weekday-picker span { display: grid; place-items: center; height: 42px; border: 1px solid var(--surface-border); border-radius: 10px; color: var(--text-muted); font-size: 11px; }
+.weekday-picker input:checked + span { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+.onboarding-note, .onboarding-summary { padding: 12px; border-radius: 10px; background: var(--surface-2); color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.onboarding-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.onboarding-actions > :only-child { grid-column: 1 / -1; }
+@media (max-width: 420px) { .onboarding-grid { grid-template-columns: 1fr; } .weekday-picker { gap: 3px; } .weekday-picker span { font-size: 10px; } }
+
 h1, h2, h3 { margin: 0; }
 
 #app {

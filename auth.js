@@ -14,6 +14,7 @@ let passwordRecoveryActive = false;
 
 const authGate = document.getElementById("auth-gate");
 const recoveryGate = document.getElementById("recovery-gate");
+const onboardingGate = document.getElementById("onboarding-gate");
 const appElement = document.getElementById("app");
 const authStatus = document.getElementById("auth-status");
 
@@ -25,12 +26,14 @@ function setAuthStatus(message, error = false) {
 function showAuth() {
   authGate.hidden = false;
   recoveryGate.hidden = true;
+  onboardingGate.hidden = true;
   appElement.hidden = true;
 }
 
 function showApp() {
   authGate.hidden = true;
   recoveryGate.hidden = true;
+  onboardingGate.hidden = true;
   appElement.hidden = false;
 }
 
@@ -38,7 +41,22 @@ function showRecovery() {
   passwordRecoveryActive = true;
   authGate.hidden = true;
   recoveryGate.hidden = false;
+  onboardingGate.hidden = true;
   appElement.hidden = true;
+}
+
+function showOnboarding(profile = {}) {
+  authGate.hidden = true;
+  recoveryGate.hidden = true;
+  onboardingGate.hidden = false;
+  appElement.hidden = true;
+  const form = document.getElementById("onboarding-form");
+  form.nome.value = profile.nome || currentUser?.user_metadata?.nome || "";
+  form.idade.value = profile.idade || "";
+  form.peso.value = profile.peso || "";
+  form.altura.value = profile.altura || "";
+  form.objetivo.value = profile.objetivo || "";
+  setOnboardingStep(0);
 }
 
 function setAuthMode(mode) {
@@ -119,7 +137,7 @@ document.getElementById("recovery-form").addEventListener("submit", async event 
   status.textContent = "Senha atualizada com sucesso.";
   passwordRecoveryActive = false;
   history.replaceState(null, "", location.pathname);
-  setTimeout(showApp, 800);
+  setTimeout(() => currentUser ? loadUserData(currentUser) : showAuth(), 800);
 });
 
 function translateAuthError(message = "") {
@@ -142,7 +160,7 @@ async function loadUserData(user) {
   window.activateUserPhotos(user.id);
   document.getElementById("account-email").textContent = user.email;
   const [{ data: profile, error: profileError }, { data: remote, error: stateError }] = await Promise.all([
-    cloud.from("profiles").select("nome,peso,altura,objetivo").single(),
+    cloud.from("profiles").select("nome,idade,peso,altura,objetivo,onboarding_completed,routine_config").single(),
     cloud.from("app_states").select("state").maybeSingle()
   ]);
   if (profileError) console.error("Falha ao carregar perfil", profileError);
@@ -171,12 +189,121 @@ async function loadUserData(user) {
     document.getElementById("p-objetivo").textContent = profile.objetivo ? `Objetivo: ${profile.objetivo}` : "Defina seu objetivo em Minha conta.";
   }
   loadingCloudState = false;
+  if (!profile?.onboarding_completed) {
+    showOnboarding(profile || {});
+  } else {
+    if (profile.routine_config && Object.keys(profile.routine_config).length) {
+      state.customRoutine = profile.routine_config;
+      state.onboardingComplete = true;
+    }
+    showApp();
+    renderHoje();
+    renderPerfil();
+    await loadWorkoutFiles();
+    document.getElementById("sync-status").textContent = "Dados sincronizados com sua conta.";
+  }
+}
+
+let onboardingStep = 0;
+const onboardingSteps = [...document.querySelectorAll("[data-onboarding-step]")];
+
+function setOnboardingStep(step) {
+  onboardingStep = Math.max(0, Math.min(onboardingSteps.length - 1, step));
+  onboardingSteps.forEach((section, index) => section.hidden = index !== onboardingStep);
+  document.getElementById("onboarding-step-label").textContent = `ETAPA ${onboardingStep + 1} DE ${onboardingSteps.length}`;
+  document.getElementById("onboarding-progress-bar").style.width = `${((onboardingStep + 1) / onboardingSteps.length) * 100}%`;
+  document.getElementById("onboarding-back").hidden = onboardingStep === 0;
+  document.getElementById("onboarding-next").hidden = onboardingStep === onboardingSteps.length - 1;
+  document.getElementById("onboarding-finish").hidden = onboardingStep !== onboardingSteps.length - 1;
+  if (onboardingStep === onboardingSteps.length - 1) updateOnboardingSummary();
+}
+
+function validateOnboardingStep() {
+  const controls = [...onboardingSteps[onboardingStep].querySelectorAll("input,select")].filter(control => !control.closest("[hidden]"));
+  for (const control of controls) {
+    if (!control.checkValidity()) { control.reportValidity(); return false; }
+  }
+  return true;
+}
+
+document.getElementById("onboarding-next").addEventListener("click", () => {
+  if (validateOnboardingStep()) setOnboardingStep(onboardingStep + 1);
+});
+document.getElementById("onboarding-back").addEventListener("click", () => setOnboardingStep(onboardingStep - 1));
+document.getElementById("onboarding-has-commitment").addEventListener("change", event => {
+  document.getElementById("onboarding-commitment-fields").hidden = !event.target.checked;
+});
+
+function selectedNumbers(form, name) {
+  return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => Number(input.value));
+}
+
+function updateOnboardingSummary() {
+  const form = document.getElementById("onboarding-form");
+  const trainingDays = selectedNumbers(form, "training_days");
+  document.getElementById("onboarding-summary").textContent = trainingDays.length
+    ? `Sua rotina terá ${form.meal_count.value} refeições por dia e treino em ${trainingDays.length} dia(s) da semana.`
+    : `Sua rotina terá ${form.meal_count.value} refeições por dia. Nenhum dia fixo de treino foi selecionado.`;
+}
+
+document.getElementById("onboarding-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!validateOnboardingStep()) return;
+  const form = event.currentTarget;
+  const status = document.getElementById("onboarding-status");
+  const commitmentEnabled = form.has_commitment.checked;
+  const routine = {
+    enabled: true,
+    wakeTime: form.wake_time.value,
+    sleepTime: form.sleep_time.value,
+    mealCount: Number(form.meal_count.value),
+    trainingDays: selectedNumbers(form, "training_days"),
+    trainingTime: form.training_time.value,
+    freeMealDay: form.free_meal_day.value === "" ? null : Number(form.free_meal_day.value),
+    commitment: {
+      enabled: commitmentEnabled,
+      name: commitmentEnabled ? form.commitment_name.value.trim() : "",
+      days: commitmentEnabled ? selectedNumbers(form, "commitment_days") : [],
+      start: form.commitment_start.value,
+      end: form.commitment_end.value
+    }
+  };
+  const profile = {
+    id: currentUser.id,
+    nome: form.nome.value.trim(),
+    idade: Number(form.idade.value),
+    peso: Number(form.peso.value),
+    altura: Number(form.altura.value),
+    objetivo: form.objetivo.value,
+    onboarding_completed: true,
+    routine_config: routine,
+    updated_at: new Date().toISOString()
+  };
+  status.textContent = "Criando sua rotina…";
+  status.classList.remove("error");
+  const { error } = await cloud.from("profiles").upsert(profile);
+  if (error) {
+    status.textContent = `Não foi possível salvar: ${error.message}`;
+    status.classList.add("error");
+    return;
+  }
+  state.profile.nome = profile.nome;
+  state.profile.idade = profile.idade;
+  state.profile.pesoInicial = profile.peso;
+  state.profile.altura = profile.altura;
+  state.metas.aguaMetaMl = Math.round(Number(form.water_goal.value) * 1000);
+  state.customRoutine = routine;
+  state.onboardingComplete = true;
+  state.dayOverrides = {};
+  state.segundaConfig = structuredCloneSafe(DEFAULT_STATE.segundaConfig);
+  saveState();
+  await cloud.from("app_states").upsert({ user_id: currentUser.id, state, updated_at: new Date().toISOString() });
+  document.getElementById("p-objetivo").textContent = `Objetivo: ${profile.objetivo}`;
   showApp();
   renderHoje();
   renderPerfil();
   await loadWorkoutFiles();
-  document.getElementById("sync-status").textContent = "Dados sincronizados com sua conta.";
-}
+});
 
 window.scheduleCloudSave = function(nextState) {
   if (!currentUser || loadingCloudState) return;

@@ -72,6 +72,97 @@
   </div>
 </section>
 
+<section class="onboarding-gate" id="onboarding-gate" hidden>
+  <div class="onboarding-card">
+    <div class="onboarding-progress"><span id="onboarding-progress-bar"></span></div>
+    <p class="eyebrow" id="onboarding-step-label">ETAPA 1 DE 4</p>
+    <form id="onboarding-form">
+      <section class="onboarding-step" data-onboarding-step="0">
+        <h1>Vamos montar sua rotina</h1>
+        <p>Essas informações criam uma interface inicial. Você poderá alterar tudo depois.</p>
+        <div class="onboarding-grid">
+          <label>Nome<input type="text" name="nome" required></label>
+          <label>Idade<input type="number" name="idade" min="13" max="120" required></label>
+          <label>Peso atual (kg)<input type="number" name="peso" min="20" max="500" step="0.1" required></label>
+          <label>Altura (m)<input type="number" name="altura" min="0.5" max="3" step="0.01" required></label>
+        </div>
+        <label>Objetivo principal
+          <select name="objetivo" required>
+            <option value="">Selecione</option>
+            <option>Ganhar massa muscular</option>
+            <option>Reduzir gordura corporal</option>
+            <option>Melhorar condicionamento</option>
+            <option>Manter peso e criar consistência</option>
+            <option>Acompanhar alimentação e saúde</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="1" hidden>
+        <h1>Seu dia normal</h1>
+        <p>Informe os horários mais comuns. Não precisam ser exatos.</p>
+        <div class="onboarding-grid">
+          <label>Acorda por volta de<input type="time" name="wake_time" value="07:00" required></label>
+          <label>Dorme por volta de<input type="time" name="sleep_time" value="23:00" required></label>
+          <label>Refeições por dia
+            <select name="meal_count" required><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
+          </label>
+          <label>Meta de água (L)<input type="number" name="water_goal" min="0.5" max="10" step="0.1" value="3" required></label>
+        </div>
+        <label>Dia preferido para refeição livre
+          <select name="free_meal_day"><option value="">Sem dia fixo</option><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
+        </label>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="2" hidden>
+        <h1>Treino da semana</h1>
+        <p>Marque os dias em que normalmente pretende treinar.</p>
+        <div class="weekday-picker" id="onboarding-training-days">
+          <label><input type="checkbox" name="training_days" value="1"><span>Seg</span></label>
+          <label><input type="checkbox" name="training_days" value="2"><span>Ter</span></label>
+          <label><input type="checkbox" name="training_days" value="3"><span>Qua</span></label>
+          <label><input type="checkbox" name="training_days" value="4"><span>Qui</span></label>
+          <label><input type="checkbox" name="training_days" value="5"><span>Sex</span></label>
+          <label><input type="checkbox" name="training_days" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="training_days" value="0"><span>Dom</span></label>
+        </div>
+        <label>Horário habitual do treino<input type="time" name="training_time" value="18:00"></label>
+        <p class="onboarding-note">Na próxima etapa você poderá enviar seu PDF/DOCX. Por enquanto, criaremos os blocos de treino nos dias escolhidos.</p>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="3" hidden>
+        <h1>Trabalho ou estudo</h1>
+        <p>Adicione esse bloco somente se fizer parte da sua rotina.</p>
+        <label class="toggle-row"><span>Tenho trabalho ou estudo com horário regular</span><input type="checkbox" name="has_commitment" id="onboarding-has-commitment"></label>
+        <div id="onboarding-commitment-fields" hidden>
+          <label>Nome do compromisso<input type="text" name="commitment_name" placeholder="Ex.: Trabalho, faculdade, curso"></label>
+          <div class="onboarding-grid">
+            <label>Início<input type="time" name="commitment_start" value="08:00"></label>
+            <label>Fim<input type="time" name="commitment_end" value="12:00"></label>
+          </div>
+          <div class="weekday-picker">
+            <label><input type="checkbox" name="commitment_days" value="1"><span>Seg</span></label>
+            <label><input type="checkbox" name="commitment_days" value="2"><span>Ter</span></label>
+            <label><input type="checkbox" name="commitment_days" value="3"><span>Qua</span></label>
+            <label><input type="checkbox" name="commitment_days" value="4"><span>Qui</span></label>
+            <label><input type="checkbox" name="commitment_days" value="5"><span>Sex</span></label>
+            <label><input type="checkbox" name="commitment_days" value="6"><span>Sáb</span></label>
+            <label><input type="checkbox" name="commitment_days" value="0"><span>Dom</span></label>
+          </div>
+        </div>
+        <div class="onboarding-summary" id="onboarding-summary"></div>
+      </section>
+
+      <div class="onboarding-actions">
+        <button type="button" class="btn-secondary" id="onboarding-back" hidden>Voltar</button>
+        <button type="button" class="btn-primary" id="onboarding-next">Continuar</button>
+        <button type="submit" class="btn-primary" id="onboarding-finish" hidden>Criar minha rotina</button>
+      </div>
+      <p class="auth-status" id="onboarding-status"></p>
+    </form>
+  </div>
+</section>
+
 <div id="app" hidden>
 
   <!-- ===================== HEADER ===================== -->
@@ -312,7 +403,7 @@
       </form>
     </section>
 
-    <section class="settings-block">
+    <section class="settings-block legacy-personal-settings" hidden>
       <h2 class="section-title">Horário da faculdade — segunda-feira (quando houver aula)</h2>
       <form id="form-segunda" class="settings-form">
         <label>Início
@@ -325,7 +416,7 @@
       </form>
     </section>
 
-    <section class="settings-block">
+    <section class="settings-block legacy-personal-settings" hidden>
       <h2 class="section-title">Fim de semana</h2>
       <label class="toggle-row">
         <span>Reduzir levemente carboidratos/calorias no fim de semana</span>
