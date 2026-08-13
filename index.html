@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 
@@ -225,6 +225,11 @@
       </div>
     </section>
 
+    <section class="today-diet-summary" id="today-diet-summary" hidden>
+      <div><span>Plano alimentar do dia</span><b id="today-diet-plan-macros">0 kcal · 0 g proteína</b></div>
+      <small id="today-diet-plan-status">Estimativa dos itens reconhecidos na dieta.</small>
+    </section>
+
     <section class="water-control">
       <div class="water-control-row">
         <span>Água de hoje</span>
@@ -282,8 +287,9 @@
     <input type="file" id="diet-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
     <p class="diet-import-status" id="diet-import-status">Envie um PDF ou DOCX com refeições, alimentos e quantidades.</p>
     <section class="diet-source-card" id="diet-source-card" hidden></section>
+    <section class="diet-plan-summary" id="diet-plan-summary" hidden></section>
     <section class="diet-meals-section">
-      <h2 class="section-title">Refeições do plano</h2>
+      <div class="section-heading-row"><h2 class="section-title">Refeições do plano</h2><button class="food-add-btn" id="btn-add-diet-meal">+ Refeição</button></div>
       <div class="diet-meal-list" id="diet-meal-list"></div>
     </section>
     <section class="diet-notes-section" id="diet-notes-section" hidden>
@@ -598,6 +604,35 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: EDITAR DIETA ===================== -->
+<div class="modal-overlay" id="modal-diet-editor" hidden>
+  <div class="modal-sheet diet-editor-sheet">
+    <div class="modal-handle"></div>
+    <h3 id="diet-editor-heading">Editar refeição</h3>
+    <form id="form-diet-editor" class="food-form">
+      <input type="hidden" id="diet-editor-id">
+      <div class="food-form-grid">
+        <label>Nome da refeição
+          <input type="text" id="diet-editor-title" placeholder="Ex.: Café da manhã" required>
+        </label>
+        <label>Horário
+          <input type="time" id="diet-editor-time">
+        </label>
+      </div>
+      <label>Alimentos — um por linha
+        <textarea id="diet-editor-items" rows="8" placeholder="3 ovos inteiros&#10;2 fatias de pão de forma&#10;100 g de mamão" required></textarea>
+      </label>
+      <p class="diet-editor-help">Para calcular, informe a quantidade e a unidade. Exemplos: 3 ovos, 300 g de arroz, 100 ml de iogurte.</p>
+      <label>Orientações gerais — uma por linha
+        <textarea id="diet-editor-notes" rows="4" placeholder="Ex.: Beber 3 litros de água por dia"></textarea>
+      </label>
+      <button class="btn-primary" type="submit">Salvar refeição</button>
+      <button class="btn-danger-outline" type="button" id="diet-editor-delete">Excluir refeição</button>
+      <button class="btn-secondary" type="button" id="diet-editor-cancel">Cancelar</button>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== MODAL: SUBSTITUIR ===================== -->
 <div class="modal-overlay" id="modal-substituir" hidden>
   <div class="modal-sheet">
@@ -653,8 +688,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=21"></script>
-<script src="script.js?v=21"></script>
-<script src="auth.js?v=21"></script>
+<script src="supabase-config.js?v=22"></script>
+<script src="script.js?v=22"></script>
+<script src="auth.js?v=22"></script>
 </body>
 </html>

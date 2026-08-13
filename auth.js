@@ -623,7 +623,8 @@ function parseDietPlan(text, fileName) {
   suspiciousScoops.forEach(item => warnings.push(`Confira a unidade informada em “${item}”.`));
   meals.filter(meal => !meal.items.length).forEach(meal => warnings.push(`${meal.title} foi identificada sem alimentos.`));
   if (!meals.length) throw new Error("Não encontrei blocos de refeições no documento");
-  return { source: fileName, parsedAt: new Date().toISOString(), parserVersion: 1, meals, generalNotes: [...new Set(generalNotes)], warnings: [...new Set(warnings)] };
+  const plan = { source: fileName, parsedAt: new Date().toISOString(), parserVersion: 2, meals, generalNotes: [...new Set(generalNotes)], warnings: [...new Set(warnings)] };
+  return window.enrichDietPlan ? window.enrichDietPlan(plan) : plan;
 }
 
 document.getElementById("btn-import-diet").addEventListener("click", () => document.getElementById("diet-input").click());
@@ -648,7 +649,10 @@ document.getElementById("diet-input").addEventListener("change", async event => 
     renderDieta();
     renderHoje();
     renderSemana();
-    status.textContent = `${plan.meals.length} refeição(ões) importada(s). Confira os itens abaixo.`;
+    const nutrition = typeof dietPlanTotals === "function" ? dietPlanTotals(plan) : null;
+    status.textContent = nutrition
+      ? `${plan.meals.length} refeição(ões) importada(s); ${nutrition.calculated} de ${nutrition.items} item(ns) calculado(s).`
+      : `${plan.meals.length} refeição(ões) importada(s). Confira os itens abaixo.`;
     showToast("Plano alimentar importado.");
   } catch (error) {
     status.textContent = `Não foi possível organizar o plano: ${error.message}.`;

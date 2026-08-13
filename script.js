@@ -36,7 +36,7 @@ const DEFAULT_STATE = {
     commitment: { enabled: false, name: "", days: [], start: "08:00", end: "12:00" }
   },
   workoutPlan: { source: "", parsedAt: null, days: {} },
-  dietPlan: { source: "", parsedAt: null, parserVersion: 1, meals: [], generalNotes: [], warnings: [] },
+  dietPlan: { source: "", parsedAt: null, parserVersion: 2, meals: [], generalNotes: [], warnings: [] },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
   dayOverrides: {},          // { "2026-08-17": { faculdade: true } }
@@ -251,8 +251,8 @@ function ceia(id, time) {
   });
 }
 
-function genericMeal(id, time, title, desc = "Registre abaixo os alimentos e quantidades consumidos nesta refeição.") {
-  return mkMeal({ id, time, title, desc, kcal: 0, proteina: 0 });
+function genericMeal(id, time, title, desc = "Registre abaixo os alimentos e quantidades consumidos nesta refeição.", macros = null) {
+  return mkMeal({ id, time, title, desc, kcal: Number(macros?.kcal) || 0, proteina: Number(macros?.proteina) || 0 });
 }
 
 function minutesToTime(total) {
@@ -272,7 +272,7 @@ function gerarDiaPersonalizado(dateObj) {
   const events = [];
   events.push(mkLembrete({ id: "acordar", time: cfg.wakeTime, title: "Início do dia", desc: "Horário habitual informado no seu perfil." }));
 
-  const importedMeals = state.dietPlan?.meals || [];
+  const importedMeals = ensureDietPlanNutrition().meals || [];
   const mealCount = importedMeals.length || Math.max(3, Math.min(6, Number(cfg.mealCount) || 4));
   const wake = timeToMinutes(cfg.wakeTime);
   const sleep = timeToMinutes(cfg.sleepTime, 1380);
@@ -286,13 +286,15 @@ function gerarDiaPersonalizado(dateObj) {
     const minute = wake + 45 + position * Math.max(120, awakeDuration - 120);
     const isPlannedFreeMeal = cfg.freeMealDay !== null && cfg.freeMealDay !== undefined && Number(cfg.freeMealDay) === wd && index === mealTitles.length - 1;
     const imported = importedMeals[index];
+    const importedMacros = imported ? dietMealTotals(imported) : null;
     events.push(genericMeal(
       imported?.id || `custom_meal_${index + 1}`,
       imported?.time || minutesToTime(minute),
       isPlannedFreeMeal ? "Refeição livre planejada" : title,
       isPlannedFreeMeal
         ? "Dia escolhido no seu perfil para a refeição livre. Registre normalmente o que consumir."
-        : imported?.items?.join(" · ") || undefined
+        : imported?.items?.map(dietItemText).join(" · ") || undefined,
+      importedMacros
     ));
   });
 
@@ -605,6 +607,15 @@ function renderHoje() {
   document.getElementById("proteina-meta").textContent = protMeta;
   document.getElementById("proteina-bar").style.width = Math.min(100, (totals.proteina / protMeta) * 100) + "%";
 
+  const dietSummary = document.getElementById("today-diet-summary");
+  const dietPlan = ensureDietPlanNutrition();
+  const planned = dietPlanTotals(dietPlan);
+  dietSummary.hidden = !dietPlan.meals.length;
+  if (dietPlan.meals.length) {
+    document.getElementById("today-diet-plan-macros").textContent = `${Math.round(planned.kcal)} kcal · ${Math.round(planned.proteina)} g proteína`;
+    document.getElementById("today-diet-plan-status").textContent = `${planned.calculated} de ${planned.items} item(ns) calculado(s). Os cartões acima somam somente refeições marcadas como comidas.`;
+  }
+
   const waterMl = getWaterMl(iso);
   const waterMeta = state.metas.aguaMetaMl;
   document.getElementById("agua-atual").textContent = (waterMl / 1000).toFixed(1).replace(".", ",");
@@ -839,8 +850,151 @@ const FOOD_PRESETS = [
   { nome: "Laranja-pera crua", kcal: 37, proteina: 1.0 },
   { nome: "Brócolis cozido", kcal: 25, proteina: 2.1 },
   { nome: "Cenoura cozida", kcal: 30, proteina: 0.8 },
-  { nome: "Tomate cru", kcal: 15, proteina: 1.1 }
+  { nome: "Tomate cru", kcal: 15, proteina: 1.1 },
+  { nome: "Pão francês", kcal: 300, proteina: 8.0 },
+  { nome: "Mel", kcal: 309, proteina: 0.0 },
+  { nome: "Café infusão sem açúcar", kcal: 9, proteina: 0.7 },
+  { nome: "Whey protein (estimativa; confira o rótulo)", kcal: 400, proteina: 80.0 }
 ];
+
+// Base local para interpretar automaticamente itens escritos no plano.
+// Valores por 100 g/ml; porções unitárias são estimativas de peso comestível.
+const DIET_NUTRITION_TABLE = [
+  { key: "ovo", name: "Ovo de galinha cozido", kcal100: 146, protein100: 13.3, aliases: ["ovos inteiros", "ovo inteiro", "ovos", "ovo"], unitGrams: 50 },
+  { key: "arroz_integral", name: "Arroz integral cozido", kcal100: 124, protein100: 2.6, aliases: ["arroz integral"] },
+  { key: "arroz", name: "Arroz branco cozido", kcal100: 128, protein100: 2.5, aliases: ["arroz branco", "arroz"] },
+  { key: "feijao_preto", name: "Feijão preto cozido", kcal100: 77, protein100: 4.5, aliases: ["feijao preto"] },
+  { key: "feijao", name: "Feijão carioca cozido", kcal100: 76, protein100: 4.8, aliases: ["feijao carioca", "feijao"] },
+  { key: "frango", name: "Peito de frango grelhado", kcal100: 159, protein100: 32, aliases: ["peito de frango", "frango"] },
+  { key: "patinho", name: "Patinho grelhado", kcal100: 219, protein100: 35.9, aliases: ["patinho"] },
+  { key: "carne", name: "Carne bovina magra (estimativa)", kcal100: 219, protein100: 35.9, aliases: ["carne bovina", "carne moida", "carne"], approximate: true },
+  { key: "tilapia", name: "Tilápia grelhada", kcal100: 128, protein100: 26, aliases: ["tilapia"] },
+  { key: "pao_forma", name: "Pão de forma integral", kcal100: 253, protein100: 9.4, aliases: ["pao de forma integral", "pao de forma"], unitGrams: 25 },
+  { key: "pao_frances", name: "Pão francês", kcal100: 300, protein100: 8, aliases: ["pao frances", "paes franceses", "pao"], unitGrams: 50 },
+  { key: "iogurte", name: "Iogurte natural", kcal100: 51, protein100: 4.1, aliases: ["iogurte natural", "iogurte"] },
+  { key: "leite", name: "Leite integral", kcal100: 61, protein100: 2.9, aliases: ["leite integral", "leite"] },
+  { key: "mamao", name: "Mamão Formosa", kcal100: 45, protein100: 0.8, aliases: ["mamao formosa", "mamao"] },
+  { key: "banana", name: "Banana-prata", kcal100: 98, protein100: 1.3, aliases: ["banana prata", "banana"], unitGrams: 80 },
+  { key: "maca", name: "Maçã Fuji com casca", kcal100: 56, protein100: 0.3, aliases: ["maca fuji", "maca"], unitGrams: 130 },
+  { key: "laranja", name: "Laranja-pera", kcal100: 37, protein100: 1, aliases: ["laranja pera", "laranja"], unitGrams: 140 },
+  { key: "aveia", name: "Aveia em flocos", kcal100: 394, protein100: 13.9, aliases: ["aveia em flocos", "aveia"] },
+  { key: "batata_doce", name: "Batata-doce cozida", kcal100: 77, protein100: 0.6, aliases: ["batata doce"] },
+  { key: "mandioca", name: "Mandioca cozida", kcal100: 125, protein100: 0.6, aliases: ["mandioca", "aipim", "macaxeira"] },
+  { key: "brocolis", name: "Brócolis cozido", kcal100: 25, protein100: 2.1, aliases: ["brocolis"] },
+  { key: "cenoura", name: "Cenoura cozida", kcal100: 30, protein100: 0.8, aliases: ["cenoura"] },
+  { key: "legumes", name: "Legumes cozidos (estimativa)", kcal100: 35, protein100: 1.8, aliases: ["legumes", "vegetais"], approximate: true },
+  { key: "mel", name: "Mel", kcal100: 309, protein100: 0, aliases: ["mel"], spoonGrams: 15 },
+  { key: "whey", name: "Whey protein (estimativa)", kcal100: 400, protein100: 80, aliases: ["whey protein", "whey"], scoopGrams: 30, approximate: true },
+  { key: "cafe", name: "Café sem açúcar", kcal100: 9, protein100: 0.7, aliases: ["cafe sem acucar", "cafe"], approximate: true }
+];
+
+function normalizeDietSearch(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9.,]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function findDietFood(text) {
+  const normalized = normalizeDietSearch(text);
+  let best = null;
+  DIET_NUTRITION_TABLE.forEach(food => food.aliases.forEach(alias => {
+    const normalizedAlias = normalizeDietSearch(alias);
+    if (normalized.includes(normalizedAlias) && (!best || normalizedAlias.length > best.alias.length)) best = { food, alias: normalizedAlias };
+  }));
+  return best?.food || null;
+}
+
+function parseDietQuantity(text, food) {
+  const normalized = normalizeDietSearch(text);
+  const number = value => Number(String(value).replace(",", "."));
+  let match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilo|quilos)\b/);
+  if (match) return { grams: number(match[1]) * 1000, label: `${match[1]} kg`, approximate: false };
+  match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gr|grama|gramas)\b/);
+  if (match) return { grams: number(match[1]), label: `${match[1]} g`, approximate: false };
+  match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|mililitro|mililitros)\b/);
+  if (match) return { grams: number(match[1]), label: `${match[1]} ml`, approximate: true };
+  match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:fatias?|slices?)\b/);
+  if (match && food?.unitGrams) return { grams: number(match[1]) * food.unitGrams, label: `${match[1]} fatia(s)`, count: number(match[1]), approximate: true };
+  match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:colheres?|cs)\b/);
+  if (match && food?.spoonGrams) return { grams: number(match[1]) * food.spoonGrams, label: `${match[1]} colher(es)`, approximate: true };
+  match = normalized.match(/(\d+(?:[.,]\d+)?)\s*scoops?\b/);
+  if (match && food?.scoopGrams && number(match[1]) <= 5) return { grams: number(match[1]) * food.scoopGrams, label: `${match[1]} scoop(s)`, approximate: true };
+  match = normalized.match(/(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:unidades?|unid\.?|unds?\.?|ovos?|bananas?|macas?|laranjas?|paes?)\b/);
+  if (match && food?.unitGrams) return { grams: number(match[1]) * food.unitGrams, label: `${match[1]} unidade(s)`, count: number(match[1]), approximate: true };
+  match = normalized.match(/^(\d+(?:[.,]\d+)?)\s+/);
+  if (match && food?.unitGrams) return { grams: number(match[1]) * food.unitGrams, label: `${match[1]} unidade(s)`, count: number(match[1]), approximate: true };
+  return null;
+}
+
+function parseDietNutritionItem(raw, index = 0) {
+  const text = typeof raw === "string" ? raw : String(raw?.text || raw?.name || "");
+  const food = findDietFood(text);
+  const quantity = parseDietQuantity(text, food);
+  const item = { id: typeof raw === "object" && raw?.id ? raw.id : `diet_item_${Date.now()}_${index}`, text, matched: false, nutritionVersion: 1 };
+  if (!food) return { ...item, issue: "Alimento não reconhecido na tabela." };
+  if (!quantity) return { ...item, foodKey: food.key, foodName: food.name, issue: "Informe a quantidade em g, ml ou unidades." };
+  const factor = quantity.grams / 100;
+  return {
+    ...item, matched: true, foodKey: food.key, foodName: food.name,
+    grams: Math.round(quantity.grams * 10) / 10, quantityLabel: quantity.label,
+    kcal100: food.kcal100, protein100: food.protein100,
+    kcal: Math.round(food.kcal100 * factor), protein: Math.round(food.protein100 * factor * 10) / 10,
+    perUnitKcal: quantity.count ? Math.round(food.kcal100 * food.unitGrams / 100) : null,
+    perUnitProtein: quantity.count ? Math.round(food.protein100 * food.unitGrams / 10) / 10 : null,
+    approximate: Boolean(food.approximate || quantity.approximate)
+  };
+}
+
+function dietItemText(item) {
+  return typeof item === "string" ? item : String(item?.text || item?.foodName || "");
+}
+
+function enrichDietPlan(plan = state.dietPlan) {
+  const safePlan = plan && typeof plan === "object" ? plan : structuredCloneSafe(DEFAULT_STATE.dietPlan);
+  safePlan.meals = Array.isArray(safePlan.meals) ? safePlan.meals : [];
+  safePlan.generalNotes = Array.isArray(safePlan.generalNotes) ? safePlan.generalNotes : [];
+  safePlan.warnings = Array.isArray(safePlan.warnings) ? safePlan.warnings : [];
+  safePlan.meals = safePlan.meals.map((meal, mealIndex) => ({
+    ...meal,
+    id: meal.id || `diet_meal_${mealIndex + 1}`,
+    title: meal.title || `Refeição ${mealIndex + 1}`,
+    items: (Array.isArray(meal.items) ? meal.items : []).map((item, itemIndex) => parseDietNutritionItem(item, `${mealIndex}_${itemIndex}`))
+  }));
+  safePlan.parserVersion = 2;
+  safePlan.nutritionUpdatedAt = new Date().toISOString();
+  return safePlan;
+}
+
+function ensureDietPlanNutrition() {
+  if (!state.dietPlan || state.dietPlan.parserVersion < 2 || (state.dietPlan.meals || []).some(meal => (meal.items || []).some(item => typeof item === "string"))) {
+    state.dietPlan = enrichDietPlan(state.dietPlan);
+    saveState();
+  }
+  return state.dietPlan || structuredCloneSafe(DEFAULT_STATE.dietPlan);
+}
+
+function dietMealTotals(meal) {
+  return (meal?.items || []).reduce((totals, item) => {
+    if (typeof item === "object" && item.matched) {
+      totals.kcal += Number(item.kcal) || 0;
+      totals.proteina += Number(item.protein) || 0;
+      totals.calculated += 1;
+    }
+    totals.items += 1;
+    return totals;
+  }, { kcal: 0, proteina: 0, calculated: 0, items: 0 });
+}
+
+function dietPlanTotals(plan = state.dietPlan) {
+  return (plan?.meals || []).reduce((totals, meal) => {
+    const mealTotals = dietMealTotals(meal);
+    totals.kcal += mealTotals.kcal;
+    totals.proteina += mealTotals.proteina;
+    totals.calculated += mealTotals.calculated;
+    totals.items += mealTotals.items;
+    return totals;
+  }, { kcal: 0, proteina: 0, calculated: 0, items: 0 });
+}
+
+window.enrichDietPlan = enrichDietPlan;
 
 function initFoodPresets() {
   const select = document.getElementById("food-preset");
@@ -1163,8 +1317,9 @@ function renderFreeMealStatus() {
    16. RENDER — DIETA IMPORTADA
 --------------------------------------------------------- */
 function renderDieta() {
-  const plan = state.dietPlan || DEFAULT_STATE.dietPlan;
+  const plan = ensureDietPlanNutrition();
   const source = document.getElementById("diet-source-card");
+  const summary = document.getElementById("diet-plan-summary");
   const mealsBox = document.getElementById("diet-meal-list");
   const notesSection = document.getElementById("diet-notes-section");
   const notesBox = document.getElementById("diet-note-list");
@@ -1177,7 +1332,7 @@ function renderDieta() {
     const sourceTitle = document.createElement("b");
     sourceTitle.textContent = plan.source;
     const sourceMeta = document.createElement("span");
-    sourceMeta.textContent = `${plan.meals.length} refeição(ões) identificada(s)`;
+    sourceMeta.textContent = `${plan.meals.length} refeição(ões) · valores nutricionais estimados`;
     sourceInfo.append(sourceTitle, sourceMeta);
     const remove = document.createElement("button");
     remove.type = "button";
@@ -1192,27 +1347,61 @@ function renderDieta() {
     });
     source.append(sourceInfo, remove);
   }
+  const planTotals = dietPlanTotals(plan);
+  summary.hidden = !plan.meals.length;
+  summary.innerHTML = plan.meals.length ? `
+    <div><span>Total planejado</span><b>${Math.round(planTotals.kcal)} kcal</b></div>
+    <div><span>Proteína planejada</span><b>${Math.round(planTotals.proteina)} g</b></div>
+    <small>${planTotals.calculated} de ${planTotals.items} item(ns) calculado(s). Valores aproximados; confira marcas e modos de preparo.</small>` : "";
   mealsBox.innerHTML = "";
   plan.meals.forEach((meal, index) => {
     const card = document.createElement("article");
     card.className = "diet-meal-card";
     const head = document.createElement("div");
+    head.className = "diet-meal-head";
     const number = document.createElement("span");
+    number.className = "diet-meal-number";
     number.textContent = String(index + 1).padStart(2, "0");
     const heading = document.createElement("div");
+    heading.className = "diet-meal-heading";
     const title = document.createElement("b");
     title.textContent = meal.title;
     const time = document.createElement("small");
     time.textContent = meal.time || "Horário flexível";
     heading.append(title, time);
-    head.append(number, heading);
-    const list = document.createElement("ul");
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "diet-meal-edit";
+    edit.textContent = "Editar";
+    edit.addEventListener("click", () => openDietEditor(meal.id));
+    head.append(number, heading, edit);
+    const list = document.createElement("div");
+    list.className = "diet-item-list";
     meal.items.forEach(item => {
-      const li = document.createElement("li");
-      li.textContent = item;
-      list.appendChild(li);
+      const row = document.createElement("div");
+      row.className = "diet-item-row";
+      const copy = document.createElement("div");
+      copy.className = "diet-item-copy";
+      const itemText = document.createElement("span");
+      itemText.textContent = dietItemText(item);
+      const detail = document.createElement("small");
+      detail.textContent = item.matched
+        ? `${item.foodName} · ${item.quantityLabel}${item.perUnitKcal ? ` · ≈ ${item.perUnitKcal} kcal/unid.` : ""}${item.approximate ? " · estimativa" : ""}`
+        : item.issue || "Cálculo pendente";
+      copy.append(itemText, detail);
+      const macros = document.createElement("div");
+      macros.className = `diet-item-macros${item.matched ? "" : " pending"}`;
+      macros.innerHTML = item.matched
+        ? `${Math.round(item.kcal)} kcal<br>${Number(item.protein).toFixed(1).replace(".", ",")} g prot.`
+        : "conferir";
+      row.append(copy, macros);
+      list.appendChild(row);
     });
-    card.append(head, list);
+    const mealTotals = dietMealTotals(meal);
+    const total = document.createElement("div");
+    total.className = "diet-meal-total";
+    total.innerHTML = `<span>${mealTotals.calculated}/${mealTotals.items} item(ns) calculado(s)</span><b>${Math.round(mealTotals.kcal)} kcal · ${Math.round(mealTotals.proteina)} g proteína</b>`;
+    card.append(head, list, total);
     mealsBox.appendChild(card);
   });
   if (!plan.meals.length) {
@@ -1228,14 +1417,85 @@ function renderDieta() {
     li.textContent = note;
     notesBox.appendChild(li);
   });
-  warningSection.hidden = !plan.warnings.length;
+  const nutritionWarnings = [];
+  plan.meals.forEach(meal => meal.items.filter(item => !item.matched).forEach(item => nutritionWarnings.push(`${meal.title}: ${dietItemText(item)} — ${item.issue || "cálculo pendente"}`)));
+  const allWarnings = [...new Set([...(plan.warnings || []), ...nutritionWarnings])];
+  warningSection.hidden = !allWarnings.length;
   warningBox.innerHTML = "";
-  plan.warnings.forEach(warning => {
+  allWarnings.forEach(warning => {
     const li = document.createElement("li");
     li.textContent = warning;
     warningBox.appendChild(li);
   });
 }
+
+let editingDietMealId = null;
+
+function openDietEditor(mealId = null) {
+  const plan = ensureDietPlanNutrition();
+  const meal = plan.meals.find(item => item.id === mealId) || null;
+  editingDietMealId = meal?.id || null;
+  document.getElementById("diet-editor-heading").textContent = meal ? "Editar refeição" : "Adicionar refeição";
+  document.getElementById("diet-editor-id").value = meal?.id || "";
+  document.getElementById("diet-editor-title").value = meal?.title || "";
+  document.getElementById("diet-editor-time").value = meal?.time || "";
+  document.getElementById("diet-editor-items").value = (meal?.items || []).map(dietItemText).join("\n");
+  document.getElementById("diet-editor-notes").value = (plan.generalNotes || []).join("\n");
+  document.getElementById("diet-editor-delete").hidden = !meal;
+  document.getElementById("modal-diet-editor").hidden = false;
+}
+
+function closeDietEditor() {
+  editingDietMealId = null;
+  document.getElementById("modal-diet-editor").hidden = true;
+}
+
+document.getElementById("btn-add-diet-meal").addEventListener("click", () => openDietEditor());
+document.getElementById("diet-editor-cancel").addEventListener("click", closeDietEditor);
+document.getElementById("modal-diet-editor").addEventListener("click", event => {
+  if (event.target.id === "modal-diet-editor") closeDietEditor();
+});
+document.getElementById("form-diet-editor").addEventListener("submit", event => {
+  event.preventDefault();
+  const plan = ensureDietPlanNutrition();
+  const rawItems = document.getElementById("diet-editor-items").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+  if (!rawItems.length) return showToast("Adicione pelo menos um alimento.");
+  const currentIndex = plan.meals.findIndex(meal => meal.id === editingDietMealId);
+  const meal = {
+    id: editingDietMealId || `diet_meal_${Date.now()}`,
+    title: document.getElementById("diet-editor-title").value.trim(),
+    time: document.getElementById("diet-editor-time").value || null,
+    items: rawItems
+  };
+  if (currentIndex >= 0) plan.meals[currentIndex] = meal;
+  else plan.meals.push(meal);
+  plan.generalNotes = document.getElementById("diet-editor-notes").value.split(/\r?\n/).map(note => note.trim()).filter(Boolean);
+  plan.source = plan.source || "Plano criado no aplicativo";
+  plan.parsedAt = new Date().toISOString();
+  state.dietPlan = enrichDietPlan(plan);
+  state.customRoutine.mealCount = state.dietPlan.meals.length;
+  saveState();
+  window.persistRoutineConfig?.(state.customRoutine);
+  closeDietEditor();
+  renderDieta();
+  renderHoje();
+  renderSemana();
+  showToast("Dieta atualizada e recalculada.");
+});
+document.getElementById("diet-editor-delete").addEventListener("click", () => {
+  if (!editingDietMealId || !window.confirm("Excluir esta refeição do plano?")) return;
+  const plan = ensureDietPlanNutrition();
+  plan.meals = plan.meals.filter(meal => meal.id !== editingDietMealId);
+  state.dietPlan = enrichDietPlan(plan);
+  state.customRoutine.mealCount = Math.max(3, state.dietPlan.meals.length || 3);
+  saveState();
+  window.persistRoutineConfig?.(state.customRoutine);
+  closeDietEditor();
+  renderDieta();
+  renderHoje();
+  renderSemana();
+  showToast("Refeição excluída.");
+});
 
 /* ---------------------------------------------------------
    17. RENDER — TREINO SEPARADO DA ALIMENTAÇÃO
@@ -1910,7 +2170,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=21", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=22", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });

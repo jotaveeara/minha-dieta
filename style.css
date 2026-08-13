@@ -102,23 +102,44 @@ button, input, select, textarea {
 .diet-source-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .diet-source-card span { color: var(--text-muted); font-size: 11px; }
 .diet-source-card button { flex: 0 0 auto; border: 0; background: transparent; color: var(--coral); font-size: 11px; }
+.diet-plan-summary, .today-diet-summary { margin-top: 12px; padding: 13px 14px; border: 1px solid rgba(232,163,61,.32); border-radius: var(--radius-md); background: var(--amber-dim); }
+.diet-plan-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.diet-plan-summary > div { display: flex; flex-direction: column; gap: 3px; }
+.diet-plan-summary span, .today-diet-summary span { color: var(--text-muted); font-size: 11px; }
+.diet-plan-summary b, .today-diet-summary b { color: var(--text); font-size: 14px; }
+.diet-plan-summary small, .today-diet-summary small { grid-column: 1 / -1; color: var(--text-faint); font-size: 10.5px; line-height: 1.4; }
+.today-diet-summary { display: flex; flex-direction: column; gap: 4px; }
+.today-diet-summary > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .diet-meals-section, .diet-notes-section, .diet-warning-section { margin-top: 23px; }
 .diet-meal-list { display: grid; gap: 11px; }
 .diet-meal-card { overflow: hidden; border: 1px solid var(--surface-border); border-radius: var(--radius-lg); background: var(--surface); }
-.diet-meal-card > div { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-bottom: 1px solid var(--surface-border); background: linear-gradient(135deg, rgba(111,207,143,.09), transparent 70%); }
-.diet-meal-card > div > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--green-dim); color: var(--green); font-size: 11px; font-weight: 800; }
-.diet-meal-card > div > div { display: flex; flex-direction: column; gap: 2px; }
+.diet-meal-head { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-bottom: 1px solid var(--surface-border); background: linear-gradient(135deg, rgba(111,207,143,.09), transparent 70%); }
+.diet-meal-number { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; background: var(--green-dim); color: var(--green); font-size: 11px; font-weight: 800; }
+.diet-meal-heading { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.diet-meal-edit { padding: 7px 9px; border: 1px solid var(--surface-border); border-radius: 8px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; }
 .diet-meal-card b { font-size: 14px; }
 .diet-meal-card small { color: var(--amber); font-size: 11px; }
-.diet-meal-card ul, .diet-note-list, .diet-warning-list { margin: 0; padding: 12px 16px 14px 34px; display: grid; gap: 8px; }
-.diet-meal-card li, .diet-note-list li, .diet-warning-list li { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
-.diet-meal-card li::marker { color: var(--green); }
+.diet-item-list { display: grid; gap: 0; }
+.diet-item-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,.055); }
+.diet-item-row:last-child { border-bottom: 0; }
+.diet-item-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.diet-item-copy > span { color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
+.diet-item-copy > small { color: var(--text-faint); font-size: 10.5px; }
+.diet-item-macros { flex: 0 0 auto; text-align: right; color: var(--green); font-size: 11px; font-weight: 750; line-height: 1.45; }
+.diet-item-macros.pending { color: var(--amber); font-weight: 650; }
+.diet-meal-total { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--surface-border); background: var(--surface-2); color: var(--text-muted); font-size: 11px; }
+.diet-meal-total b { color: var(--text); font-size: 12px; }
+.diet-note-list, .diet-warning-list { margin: 0; padding: 12px 16px 14px 34px; display: grid; gap: 8px; }
+.diet-note-list li, .diet-warning-list li { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
 .diet-note-list, .diet-warning-list { border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface); }
 .diet-warning-list { border-color: rgba(232,163,61,.35); background: var(--amber-dim); }
 .diet-warning-list li::marker { color: var(--amber); }
 .diet-empty { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 28px 18px; border: 1px dashed var(--surface-border); border-radius: var(--radius-lg); text-align: center; }
 .diet-empty b { font-size: 14px; }
 .diet-empty span { color: var(--text-muted); font-size: 12px; }
+.diet-editor-sheet { max-height: 92vh; overflow-y: auto; }
+.diet-editor-help { color: var(--text-faint); font-size: 11px; line-height: 1.45; }
+.btn-danger-outline { width: 100%; padding: 12px; border: 1px solid rgba(232,87,74,.5); border-radius: var(--radius-sm); background: rgba(232,87,74,.09); color: #ff6258; font-weight: 700; }
 
 /* ============= TREINO ============= */
 .training-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
