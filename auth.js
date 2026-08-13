@@ -402,13 +402,101 @@ document.getElementById("btn-signout").addEventListener("click", async () => {
 });
 
 document.getElementById("btn-upload-workout").addEventListener("click", () => document.getElementById("workout-input").click());
+
+async function extractWorkoutText(file) {
+  const buffer = await file.arrayBuffer();
+  if (file.type === "application/pdf") {
+    const pdfjs = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.worker.mjs";
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const pages = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      let pageText = "";
+      content.items.forEach(item => { pageText += item.str + (item.hasEOL ? "\n" : " "); });
+      pages.push(pageText);
+    }
+    return pages.join("\n");
+  }
+  if (!window.mammoth) throw new Error("Leitor DOCX indisponível");
+  const result = await window.mammoth.extractRawText({ arrayBuffer: buffer });
+  return result.value;
+}
+
+function parseWorkoutPlan(text, fileName) {
+  const dayPatterns = [
+    [/\b(domingo|dom)\b/i, 0], [/\b(segunda(?:-feira)?|seg)\b/i, 1],
+    [/\b(terça(?:-feira)?|terca(?:-feira)?|ter)\b/i, 2], [/\b(quarta(?:-feira)?|qua)\b/i, 3],
+    [/\b(quinta(?:-feira)?|qui)\b/i, 4], [/\b(sexta(?:-feira)?|sex)\b/i, 5],
+    [/\b(sábado|sabado|sáb|sab)\b/i, 6]
+  ];
+  const focusWords = /(pernas?|quadr[ií]ceps|posterior|gl[uú]teos?|peito|costas|ombros?|b[ií]ceps|tr[ií]ceps|braços?|abd[oô]men|cardio|full body)/ig;
+  const ignored = /^(treino|ficha|exerc[ií]cios?|s[eé]ries?|repeti[cç][oõ]es?|descanso|aluno|academia)\s*:?$/i;
+  const lines = String(text || "").split(/\r?\n|\s{3,}/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const days = {};
+  let currentDay = null;
+  for (const line of lines) {
+    const match = dayPatterns.find(([pattern]) => pattern.test(line));
+    if (match && line.length < 100) {
+      currentDay = match[1];
+      if (!days[currentDay]) days[currentDay] = { focus: "", exercises: [] };
+      const focuses = [...line.matchAll(focusWords)].map(item => item[0]);
+      if (focuses.length) days[currentDay].focus = [...new Set(focuses)].join(" + ");
+      continue;
+    }
+    if (currentDay !== null && line.length >= 3 && line.length <= 120 && !ignored.test(line)) {
+      days[currentDay].exercises.push(line.replace(/^[-•\d.)\s]+/, "").trim());
+    }
+  }
+  Object.values(days).forEach(day => {
+    day.exercises = [...new Set(day.exercises)].filter(Boolean).slice(0, 15);
+    if (!day.focus) {
+      const focus = [...day.exercises.join(" ").matchAll(focusWords)].map(item => item[0]);
+      day.focus = [...new Set(focus)].slice(0, 3).join(" + ") || "Treino do dia";
+    }
+  });
+  if (!Object.keys(days).length) throw new Error("Não encontrei dias da semana no documento");
+  return { source: fileName, parsedAt: new Date().toISOString(), days };
+}
+
+function renderWorkoutAnalysis() {
+  const box = document.getElementById("workout-analysis");
+  const plan = state.workoutPlan;
+  box.innerHTML = "";
+  if (!plan?.days || !Object.keys(plan.days).length) return;
+  Object.entries(plan.days).sort((a, b) => Number(a[0]) - Number(b[0])).forEach(([day, workout]) => {
+    const item = document.createElement("div");
+    item.className = "workout-analysis-day";
+    item.innerHTML = `<b>${WEEKDAY_NAMES[Number(day)]}: ${workout.focus}</b><span>${workout.exercises.length} exercício(s) identificado(s)</span>`;
+    box.appendChild(item);
+  });
+}
+
 document.getElementById("workout-input").addEventListener("change", async event => {
   const file = event.target.files[0];
   event.target.value = "";
   if (!file) return;
   const valid = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-  if (!valid.includes(file.type)) return showToast("Envie apenas PDF ou DOCX.");
+  const validExtension = /\.(pdf|docx)$/i.test(file.name);
+  if (!valid.includes(file.type) && !validExtension) return showToast("Envie apenas PDF ou DOCX.");
   if (file.size > 10485760) return showToast("O arquivo deve ter no máximo 10 MB.");
+  const analysisStatus = document.getElementById("workout-analysis-status");
+  analysisStatus.textContent = "Lendo e analisando o treino…";
+  try {
+    const text = await extractWorkoutText(file);
+    state.workoutPlan = parseWorkoutPlan(text, file.name);
+    const detectedDays = Object.keys(state.workoutPlan.days).map(Number);
+    if (detectedDays.length) state.customRoutine.trainingDays = detectedDays;
+    saveState();
+    await cloud.from("profiles").update({ routine_config: state.customRoutine, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+    renderWorkoutAnalysis();
+    renderHoje();
+    renderSemana();
+    analysisStatus.textContent = `${detectedDays.length} dia(s) de treino identificado(s). Revise o resultado abaixo.`;
+  } catch (analysisError) {
+    analysisStatus.textContent = `A leitura automática não foi concluída: ${analysisError.message}. O arquivo ainda será salvo para você revisar.`;
+  }
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `${currentUser.id}/${Date.now()}-${safeName}`;
   showToast("Enviando treino…");
@@ -430,6 +518,7 @@ async function loadWorkoutFiles() {
   const { data, error } = await cloud.from("workout_documents").select("id,file_name,storage_path,status").order("created_at", { ascending: false });
   box.innerHTML = "";
   if (error) return;
+  renderWorkoutAnalysis();
   (data || []).forEach(documentRow => {
     const row = document.createElement("div");
     row.className = "workout-file";
@@ -442,6 +531,12 @@ async function loadWorkoutFiles() {
       const { error: storageError } = await cloud.storage.from("workout-documents").remove([documentRow.storage_path]);
       if (storageError) return showToast("Não foi possível excluir o arquivo.");
       await cloud.from("workout_documents").delete().eq("id", documentRow.id);
+      if (state.workoutPlan?.source === documentRow.file_name) {
+        state.workoutPlan = { source: "", parsedAt: null, days: {} };
+        saveState();
+        renderHoje();
+        renderSemana();
+      }
       await loadWorkoutFiles();
     });
     row.append(name, remove);

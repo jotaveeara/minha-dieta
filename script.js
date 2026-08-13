@@ -35,6 +35,7 @@ const DEFAULT_STATE = {
     trainingDays: [], trainingTime: "18:00", freeMealDay: null,
     commitment: { enabled: false, name: "", days: [], start: "08:00", end: "12:00" }
   },
+  workoutPlan: { source: "", parsedAt: null, days: {} },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
   dayOverrides: {},          // { "2026-08-17": { faculdade: true } }
@@ -281,7 +282,7 @@ function gerarDiaPersonalizado(dateObj) {
   mealTitles.forEach((title, index) => {
     const position = mealCount === 1 ? 0 : index / (mealCount - 1);
     const minute = wake + 45 + position * Math.max(120, awakeDuration - 120);
-    const isPlannedFreeMeal = Number(cfg.freeMealDay) === wd && index === mealTitles.length - 1;
+    const isPlannedFreeMeal = cfg.freeMealDay !== null && cfg.freeMealDay !== undefined && Number(cfg.freeMealDay) === wd && index === mealTitles.length - 1;
     events.push(genericMeal(
       `custom_meal_${index + 1}`,
       minutesToTime(minute),
@@ -296,7 +297,13 @@ function gerarDiaPersonalizado(dateObj) {
     events.push(mkPeriodo({ id: "custom_commitment", time: `${cfg.commitment.start}–${cfg.commitment.end}`, title: cfg.commitment.name || "Compromisso", desc: "Horário configurado no seu perfil." }));
   }
   const isTraining = (cfg.trainingDays || []).map(Number).includes(wd);
-  if (isTraining) events.push(mkTreino({ id: "treino", time: cfg.trainingTime, title: "Treino", desc: "Os exercícios serão adicionados quando você importar ou montar seu plano." }));
+  const workout = state.workoutPlan?.days?.[wd];
+  if (isTraining) events.push(mkTreino({
+    id: "treino",
+    time: cfg.trainingTime,
+    title: workout?.focus ? `Treino — ${workout.focus}` : "Treino",
+    desc: workout?.exercises?.length ? workout.exercises.join(" · ") : "Envie seu PDF/DOCX ou monte o plano para adicionar os exercícios."
+  }));
   events.push(mkSono({ id: "dormir", time: cfg.sleepTime, title: "Encerrar o dia", desc: "Horário habitual informado no seu perfil." }));
   events.sort((a, b) => timeToMinutes(String(a.time).slice(0, 5), 9999) - timeToMinutes(String(b.time).slice(0, 5), 9999));
   return { tipo: "personalizado", isTreino: isTraining, eventos: events };
@@ -1091,7 +1098,8 @@ function renderSemana() {
     const dayName = WEEKDAY_NAMES[wdIndex].charAt(0) + WEEKDAY_NAMES[wdIndex].slice(1).toLowerCase();
     const training = plan.eventos.some(event => event.type === "treino");
     const commitment = plan.eventos.find(event => event.type === "periodo");
-    const plannedFree = Number(state.customRoutine?.freeMealDay) === wdIndex;
+    const configuredFreeDay = state.customRoutine?.freeMealDay;
+    const plannedFree = configuredFreeDay !== null && configuredFreeDay !== undefined && configuredFreeDay !== "" && Number(configuredFreeDay) === wdIndex;
     const badge = training ? "treino" : "descanso";
     const badgeLabel = training ? "treino" : "descanso";
     const details = [];
@@ -1099,6 +1107,8 @@ function renderSemana() {
     if (training) {
       const workout = plan.eventos.find(event => event.type === "treino");
       details.push(`Treino ${workout.time}`);
+      const imported = state.workoutPlan?.days?.[wdIndex];
+      if (imported?.focus) details.push(imported.focus);
     } else details.push("Sem treino programado");
     if (plannedFree) details.push("dia preferido para refeição livre");
 

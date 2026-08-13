@@ -82,6 +82,11 @@ button, input, select, textarea {
 .workout-file { display: flex; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--surface-border); border-radius: 10px; font-size: 12px; }
 .workout-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workout-file button { border: 0; background: transparent; color: var(--coral); }
+.workout-analysis-status { margin: 10px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
+.workout-analysis { display: grid; gap: 7px; margin-top: 10px; }
+.workout-analysis-day { display: flex; flex-direction: column; gap: 3px; padding: 10px 11px; border: 1px solid var(--surface-border); border-radius: 9px; background: var(--surface-2); }
+.workout-analysis-day b { color: var(--text); font-size: 12.5px; }
+.workout-analysis-day span { color: var(--text-muted); font-size: 11px; }
 
 /* ============= ONBOARDING ============= */
 .onboarding-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }

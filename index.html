@@ -382,6 +382,8 @@
       <p class="settings-hint">Envie um PDF ou DOCX de até 10 MB. O arquivo fica privado na sua conta.</p>
       <input type="file" id="workout-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
       <button class="btn-secondary" id="btn-upload-workout">Enviar PDF/DOCX</button>
+      <p class="workout-analysis-status" id="workout-analysis-status"></p>
+      <div class="workout-analysis" id="workout-analysis"></div>
       <div class="workout-files" id="workout-files"></div>
     </section>
 
@@ -558,6 +560,7 @@
 <div class="toast" id="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="script.js"></script>
 <script src="auth.js"></script>
