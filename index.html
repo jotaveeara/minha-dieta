@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
 
@@ -308,6 +308,10 @@
       <div><h1 class="view-title">Treino</h1><p class="view-subtitle">Seu plano separado da alimentação.</p></div>
       <div class="training-title-actions"><button class="training-edit-btn create" id="btn-create-workout-tab">Novo treino</button><button class="training-edit-btn" id="btn-edit-workout">Corrigir plano</button></div>
     </div>
+    <section class="base-plan-callout">
+      <div><b>Não tem um treino pronto?</b><span>Crie uma sugestão-base e edite qualquer exercício depois.</span></div>
+      <button type="button" id="btn-base-workout">Escolher plano base</button>
+    </section>
     <section class="training-today" id="training-today"></section>
     <section class="training-week">
       <h2 class="section-title">Divisão semanal</h2>
@@ -524,7 +528,7 @@
       <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
     </section>
 
-    <p class="app-version">Minha Dieta · v1.2</p>
+    <p class="app-version">Minha Dieta · v1.3</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->
@@ -600,6 +604,51 @@
       <div class="builder-exercises" id="builder-exercises"></div>
       <button type="submit" class="btn-primary">Salvar treino deste dia</button>
       <button type="button" class="btn-secondary" id="workout-builder-cancel">Cancelar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: PLANO BASE ===================== -->
+<div class="modal-overlay" id="modal-base-workout" hidden>
+  <div class="modal-sheet base-workout-sheet">
+    <div class="modal-handle"></div>
+    <h3>Criar plano de treino-base</h3>
+    <p class="editor-help">Escolha as opções. O plano será uma sugestão inicial e poderá ser corrigido exercício por exercício.</p>
+    <form id="form-base-workout" class="settings-form">
+      <div class="onboarding-grid">
+        <label>Nível atual
+          <select name="level"><option value="beginner">Iniciante</option><option value="intermediate">Intermediário</option></select>
+        </label>
+        <label>Onde vai treinar
+          <select name="location"><option value="gym">Academia</option><option value="home">Em casa</option></select>
+        </label>
+        <label>Objetivo principal
+          <select name="goal"><option value="general">Condicionamento geral</option><option value="hypertrophy">Ganho de massa</option><option value="strength">Força geral</option></select>
+        </label>
+        <label>Dias por semana
+          <select name="frequency"><option value="2">2 dias</option><option value="3" selected>3 dias</option><option value="4">4 dias</option><option value="5">5 dias</option></select>
+        </label>
+        <label>Horário habitual
+          <input type="time" name="time" value="18:00">
+        </label>
+      </div>
+      <fieldset class="base-days-fieldset">
+        <legend>Dias disponíveis</legend>
+        <p id="base-days-help">Escolha exatamente 3 dias.</p>
+        <div class="day-picker base-day-picker">
+          <label><input type="checkbox" name="base_days" value="1" checked><span>Seg</span></label>
+          <label><input type="checkbox" name="base_days" value="2"><span>Ter</span></label>
+          <label><input type="checkbox" name="base_days" value="3" checked><span>Qua</span></label>
+          <label><input type="checkbox" name="base_days" value="4"><span>Qui</span></label>
+          <label><input type="checkbox" name="base_days" value="5" checked><span>Sex</span></label>
+          <label><input type="checkbox" name="base_days" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" name="base_days" value="0"><span>Dom</span></label>
+        </div>
+      </fieldset>
+      <div class="base-plan-preview" id="base-plan-preview"></div>
+      <p class="base-plan-safety">Interrompa o exercício em caso de dor, tontura ou mal-estar. Lesões, limitações ou condições de saúde exigem orientação de profissional habilitado.</p>
+      <button type="submit" class="btn-primary">Criar este plano</button>
+      <button type="button" class="btn-secondary" id="base-workout-cancel">Cancelar</button>
     </form>
   </div>
 </div>
@@ -688,8 +737,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=22"></script>
-<script src="script.js?v=22"></script>
-<script src="auth.js?v=22"></script>
+<script src="supabase-config.js?v=23"></script>
+<script src="script.js?v=23"></script>
+<script src="auth.js?v=23"></script>
 </body>
 </html>

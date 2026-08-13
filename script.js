@@ -1594,6 +1594,164 @@ function renderTreino() {
   }
 }
 
+/* ---------------------------------------------------------
+   17A. GERADOR DE PLANO DE TREINO-BASE
+--------------------------------------------------------- */
+const BASE_WORKOUT_LIBRARY = {
+  gym: {
+    fullA: { focus: "Corpo inteiro A", exercises: ["Leg press", "Supino máquina", "Remada sentada", "Mesa flexora", "Elevação lateral", "Prancha"] },
+    fullB: { focus: "Corpo inteiro B", exercises: ["Agachamento no smith", "Puxada frontal", "Supino inclinado com halteres", "Cadeira extensora", "Rosca direta", "Tríceps na polia"] },
+    fullC: { focus: "Corpo inteiro C", exercises: ["Levantamento terra romeno com halteres", "Desenvolvimento máquina", "Remada baixa", "Afundo com apoio", "Panturrilha em pé", "Abdominal máquina"] },
+    upperA: { focus: "Superiores A", exercises: ["Supino máquina", "Puxada frontal", "Remada sentada", "Desenvolvimento máquina", "Rosca direta", "Tríceps na polia"] },
+    lowerA: { focus: "Inferiores A", exercises: ["Leg press", "Mesa flexora", "Cadeira extensora", "Elevação pélvica", "Panturrilha em pé", "Prancha"] },
+    upperB: { focus: "Superiores B", exercises: ["Supino inclinado com halteres", "Remada baixa", "Puxada neutra", "Elevação lateral", "Rosca martelo", "Tríceps francês"] },
+    lowerB: { focus: "Inferiores B", exercises: ["Agachamento no smith", "Levantamento terra romeno com halteres", "Afundo com apoio", "Cadeira abdutora", "Panturrilha sentada", "Abdominal máquina"] },
+    push: { focus: "Empurrar — peito, ombros e tríceps", exercises: ["Supino máquina", "Supino inclinado com halteres", "Desenvolvimento máquina", "Elevação lateral", "Tríceps na polia"] },
+    pull: { focus: "Puxar — costas e bíceps", exercises: ["Puxada frontal", "Remada sentada", "Remada unilateral", "Crucifixo inverso", "Rosca direta", "Rosca martelo"] },
+    legs: { focus: "Pernas", exercises: ["Leg press", "Levantamento terra romeno com halteres", "Cadeira extensora", "Mesa flexora", "Elevação pélvica", "Panturrilha em pé"] }
+  },
+  home: {
+    fullA: { focus: "Corpo inteiro A — casa", exercises: ["Agachamento livre", "Flexão de braços com apoio se necessário", "Remada com mochila", "Ponte de glúteos", "Elevação lateral com garrafas", "Prancha"] },
+    fullB: { focus: "Corpo inteiro B — casa", exercises: ["Afundo com apoio", "Flexão inclinada", "Remada unilateral com mochila", "Bom dia com mochila", "Rosca com mochila", "Tríceps no banco"] },
+    fullC: { focus: "Corpo inteiro C — casa", exercises: ["Agachamento sumô", "Flexão de braços", "Crucifixo inverso com garrafas", "Elevação pélvica unilateral", "Panturrilha em pé", "Abdominal curto"] },
+    upperA: { focus: "Superiores A — casa", exercises: ["Flexão inclinada", "Remada com mochila", "Desenvolvimento com mochila", "Elevação lateral com garrafas", "Rosca com mochila", "Tríceps no banco"] },
+    lowerA: { focus: "Inferiores A — casa", exercises: ["Agachamento livre", "Afundo com apoio", "Ponte de glúteos", "Bom dia com mochila", "Panturrilha em pé", "Prancha"] },
+    upperB: { focus: "Superiores B — casa", exercises: ["Flexão de braços", "Remada unilateral com mochila", "Crucifixo inverso com garrafas", "Desenvolvimento com mochila", "Rosca martelo com garrafas", "Tríceps acima da cabeça"] },
+    lowerB: { focus: "Inferiores B — casa", exercises: ["Agachamento sumô", "Afundo reverso", "Elevação pélvica unilateral", "Levantamento romeno com mochila", "Panturrilha unilateral", "Abdominal curto"] },
+    push: { focus: "Empurrar — casa", exercises: ["Flexão inclinada", "Flexão de braços", "Desenvolvimento com mochila", "Elevação lateral com garrafas", "Tríceps no banco"] },
+    pull: { focus: "Puxar — casa", exercises: ["Remada com mochila", "Remada unilateral com mochila", "Crucifixo inverso com garrafas", "Rosca com mochila", "Rosca martelo com garrafas"] },
+    legs: { focus: "Pernas — casa", exercises: ["Agachamento livre", "Afundo reverso", "Levantamento romeno com mochila", "Ponte de glúteos", "Panturrilha em pé", "Prancha"] }
+  }
+};
+
+const BASE_WORKOUT_SPLITS = {
+  2: ["fullA", "fullB"],
+  3: ["fullA", "fullB", "fullC"],
+  4: ["upperA", "lowerA", "upperB", "lowerB"],
+  5: ["push", "pull", "legs", "upperB", "lowerB"]
+};
+
+function baseExercisePrescription(name, level, goal, location) {
+  const core = /prancha|abdominal/i.test(name);
+  if (core) return `${name} — ${level === "beginner" ? 2 : 3} séries de 20–40 segundos ou 8–15 repetições`;
+  let sets = level === "beginner" ? 2 : 3;
+  let reps = "8–12";
+  if (goal === "strength") reps = location === "gym" ? "6–8" : "6–10 controladas";
+  if (goal === "general") reps = "10–15";
+  if (goal === "hypertrophy" && level === "intermediate") sets = 3;
+  return `${name} — ${sets} séries de ${reps} repetições — termine com técnica estável e sem chegar à falha nas primeiras semanas`;
+}
+
+function buildBaseWorkout({ location, frequency, level, goal, days, time }) {
+  const split = BASE_WORKOUT_SPLITS[frequency];
+  const library = BASE_WORKOUT_LIBRARY[location];
+  const planDays = {};
+  days.forEach((day, index) => {
+    const session = library[split[index]];
+    planDays[day] = {
+      focus: session.focus,
+      exercises: session.exercises.map(exercise => baseExercisePrescription(exercise, level, goal, location))
+    };
+  });
+  return {
+    source: "Plano base criado no aplicativo",
+    parsedAt: new Date().toISOString(),
+    parserVersion: 3,
+    baseConfig: { location, frequency, level, goal, days, time },
+    days: planDays
+  };
+}
+
+const baseWorkoutModal = document.getElementById("modal-base-workout");
+const baseWorkoutForm = document.getElementById("form-base-workout");
+
+function selectedBaseDays() {
+  return [...baseWorkoutForm.querySelectorAll('[name="base_days"]:checked')].map(input => Number(input.value));
+}
+
+function updateBaseWorkoutPreview() {
+  const frequency = Number(baseWorkoutForm.frequency.value);
+  const selected = selectedBaseDays();
+  document.getElementById("base-days-help").textContent = `Escolha exatamente ${frequency} dia(s). Selecionados: ${selected.length}.`;
+  const preview = document.getElementById("base-plan-preview");
+  preview.innerHTML = "";
+  const split = BASE_WORKOUT_SPLITS[frequency];
+  selected.slice(0, frequency).forEach((day, index) => {
+    const session = BASE_WORKOUT_LIBRARY[baseWorkoutForm.location.value][split[index]];
+    const row = document.createElement("div");
+    row.className = "base-preview-day";
+    row.innerHTML = `<b>${WEEKDAY_NAMES[day]}</b><span>${session.focus}</span>`;
+    preview.appendChild(row);
+  });
+  if (selected.length !== frequency) {
+    const warning = document.createElement("div");
+    warning.className = "base-preview-day";
+    warning.innerHTML = `<b>Ajuste necessário</b><span>Selecione ${frequency} dia(s) para gerar o plano.</span>`;
+    preview.appendChild(warning);
+  }
+}
+
+function applyDefaultBaseDays(frequency) {
+  const defaults = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6] }[frequency];
+  baseWorkoutForm.querySelectorAll('[name="base_days"]').forEach(input => { input.checked = defaults.includes(Number(input.value)); });
+}
+
+function openBaseWorkoutModal() {
+  baseWorkoutForm.reset();
+  const previous = state.workoutPlan?.baseConfig;
+  if (previous) {
+    baseWorkoutForm.level.value = previous.level || "beginner";
+    baseWorkoutForm.location.value = previous.location || "gym";
+    baseWorkoutForm.goal.value = previous.goal || "general";
+    baseWorkoutForm.frequency.value = String(previous.frequency || 3);
+    baseWorkoutForm.time.value = previous.time || state.customRoutine?.trainingTime || "18:00";
+    const days = (previous.days || []).map(Number);
+    baseWorkoutForm.querySelectorAll('[name="base_days"]').forEach(input => { input.checked = days.includes(Number(input.value)); });
+  } else {
+    baseWorkoutForm.time.value = state.customRoutine?.trainingTime || "18:00";
+    applyDefaultBaseDays(3);
+  }
+  updateBaseWorkoutPreview();
+  baseWorkoutModal.hidden = false;
+}
+
+function closeBaseWorkoutModal() { baseWorkoutModal.hidden = true; }
+
+document.getElementById("btn-base-workout").addEventListener("click", openBaseWorkoutModal);
+document.getElementById("base-workout-cancel").addEventListener("click", closeBaseWorkoutModal);
+baseWorkoutModal.addEventListener("click", event => { if (event.target === baseWorkoutModal) closeBaseWorkoutModal(); });
+baseWorkoutForm.frequency.addEventListener("change", () => {
+  applyDefaultBaseDays(Number(baseWorkoutForm.frequency.value));
+  updateBaseWorkoutPreview();
+});
+baseWorkoutForm.location.addEventListener("change", updateBaseWorkoutPreview);
+baseWorkoutForm.querySelectorAll('[name="base_days"]').forEach(input => input.addEventListener("change", updateBaseWorkoutPreview));
+baseWorkoutForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const frequency = Number(baseWorkoutForm.frequency.value);
+  const days = selectedBaseDays();
+  if (days.length !== frequency) return showToast(`Selecione exatamente ${frequency} dia(s).`);
+  if (Object.keys(state.workoutPlan?.days || {}).length && !window.confirm("Criar o plano-base substituirá o plano de treino atual. Deseja continuar?")) return;
+  const options = {
+    location: baseWorkoutForm.location.value,
+    frequency,
+    level: baseWorkoutForm.level.value,
+    goal: baseWorkoutForm.goal.value,
+    days,
+    time: baseWorkoutForm.time.value || "18:00"
+  };
+  state.workoutPlan = buildBaseWorkout(options);
+  state.customRoutine.trainingDays = days;
+  state.customRoutine.trainingTime = options.time;
+  saveState();
+  if (window.persistRoutineConfig) await window.persistRoutineConfig(state.customRoutine);
+  closeBaseWorkoutModal();
+  renderTreino();
+  renderSemana();
+  renderHoje();
+  showToast("Plano-base criado. Você pode corrigi-lo a qualquer momento.");
+});
+
 const workoutEditorModal = document.getElementById("modal-workout-editor");
 const workoutEditorForm = document.getElementById("form-workout-editor");
 
@@ -2170,7 +2328,7 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
 --------------------------------------------------------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js?v=22", { updateViaCache: "none" }).catch(err => {
+    navigator.serviceWorker.register("sw.js?v=23", { updateViaCache: "none" }).catch(err => {
       console.error("Falha ao registrar service worker:", err);
     });
   });

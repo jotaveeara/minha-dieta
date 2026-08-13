@@ -148,6 +148,23 @@ button, input, select, textarea {
 .training-edit-btn { flex: 0 0 auto; margin-bottom: 2px; padding: 9px 11px; border-radius: 9px; border: 1px solid rgba(232,163,61,.45); background: var(--amber-dim); color: var(--amber); font-size: 11.5px; font-weight: 750; }
 .training-edit-btn.create { border-color: rgba(111,207,143,.4); background: rgba(111,207,143,.10); color: var(--green); }
 @media (max-width: 410px) { .training-title-row { align-items: flex-start; } .training-title-actions { flex-direction: column; } .training-edit-btn { padding: 7px 9px; font-size: 10.5px; } }
+.base-plan-callout { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; padding: 14px; border: 1px solid rgba(111,207,143,.3); border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(111,207,143,.11), rgba(111,207,143,.03)); }
+.base-plan-callout > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.base-plan-callout b { font-size: 13px; }
+.base-plan-callout span { color: var(--text-muted); font-size: 11px; line-height: 1.35; }
+.base-plan-callout button { flex: 0 0 auto; padding: 9px 10px; border: 1px solid rgba(111,207,143,.42); border-radius: 9px; background: var(--green-dim); color: var(--green); font-size: 11px; font-weight: 750; }
+.base-workout-sheet { max-height: 92vh; overflow-y: auto; }
+.base-days-fieldset { margin: 0; padding: 12px; border: 1px solid var(--surface-border); border-radius: var(--radius-md); }
+.base-days-fieldset legend { padding: 0 6px; color: var(--text-muted); font-size: 12px; font-weight: 700; }
+.base-days-fieldset p { margin: 0 0 10px; color: var(--text-faint); font-size: 11px; }
+.base-day-picker { grid-template-columns: repeat(7, 1fr); }
+.base-day-picker span { padding: 9px 2px; font-size: 10px; }
+.base-plan-preview { display: grid; gap: 7px; }
+.base-preview-day { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 1px solid var(--surface-border); border-radius: 9px; background: var(--surface-2); }
+.base-preview-day b { font-size: 11.5px; }
+.base-preview-day span { color: var(--text-muted); font-size: 10.5px; text-align: right; }
+.base-plan-safety { margin: 0; padding: 10px 11px; border-left: 3px solid var(--amber); background: var(--amber-dim); color: var(--text-muted); font-size: 10.5px; line-height: 1.45; }
+@media (max-width: 410px) { .base-plan-callout { align-items: flex-start; flex-direction: column; } .base-plan-callout button { width: 100%; } }
 .training-today { margin-top: 16px; padding: 18px; border: 1px solid rgba(232,87,74,.35); border-radius: var(--radius-lg); background: var(--surface); }
 .training-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .training-heading span { display: block; color: var(--coral); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
