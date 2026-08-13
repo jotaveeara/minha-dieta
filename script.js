@@ -79,6 +79,7 @@ function saveState() {
   saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (window.scheduleCloudSave) window.scheduleCloudSave(state);
     } catch (e) {
       console.error("Falha ao salvar. Armazenamento pode estar cheio.", e);
       showToast("Não foi possível salvar — armazenamento cheio?");
@@ -1308,6 +1309,8 @@ document.getElementById("foto-input").addEventListener("change", (e) => {
 function renderPerfil() {
   document.getElementById("p-nome").textContent = state.profile.nome;
   document.getElementById("p-idade").textContent = state.profile.idade + " anos";
+  document.getElementById("p-altura").textContent = Number(state.profile.altura).toFixed(2).replace(".", ",") + " m";
+  document.getElementById("p-peso-inicial").textContent = Number(state.profile.pesoInicial).toFixed(1).replace(".", ",") + " kg";
 
   const f = document.getElementById("form-metas");
   f.kcal.value = state.metas.kcal;

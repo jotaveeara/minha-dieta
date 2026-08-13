@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Rotina — João</title>
+<title>Minha Dieta</title>
 
 <!-- PWA / iOS -->
 <link rel="manifest" href="manifest.json">
@@ -19,7 +19,33 @@
 </head>
 <body>
 
-<div id="app">
+<section class="auth-gate" id="auth-gate">
+  <div class="auth-card">
+    <img src="icon-192.png" class="auth-logo" alt="">
+    <h1>Minha Dieta</h1>
+    <p class="auth-subtitle">Sua rotina, alimentação e evolução em uma conta privada.</p>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-auth-mode="login">Entrar</button>
+      <button type="button" class="auth-tab" data-auth-mode="signup">Criar conta</button>
+    </div>
+    <form id="auth-form" class="auth-form">
+      <label id="auth-name-label" hidden>Nome
+        <input type="text" id="auth-name" autocomplete="name">
+      </label>
+      <label>E-mail
+        <input type="email" id="auth-email" autocomplete="email" required>
+      </label>
+      <label>Senha
+        <input type="password" id="auth-password" minlength="6" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="btn-primary" id="auth-submit">Entrar</button>
+    </form>
+    <button type="button" class="auth-forgot" id="auth-forgot">Esqueci minha senha</button>
+    <p class="auth-status" id="auth-status"></p>
+  </div>
+</section>
+
+<div id="app" hidden>
 
   <!-- ===================== HEADER ===================== -->
   <header class="topbar">
@@ -195,12 +221,45 @@
       <div class="profile-grid">
         <div><span>Nome</span><b id="p-nome">João</b></div>
         <div><span>Idade</span><b id="p-idade">20 anos</b></div>
-        <div><span>Altura</span><b>1,90 m</b></div>
-        <div><span>Peso inicial</span><b>90 kg</b></div>
+        <div><span>Altura</span><b id="p-altura">1,90 m</b></div>
+        <div><span>Peso inicial</span><b id="p-peso-inicial">90 kg</b></div>
         <div><span>Início dos treinos</span><b>28/08/2026</b></div>
         <div><span>Meta</span><b>fev/2027</b></div>
       </div>
-      <p class="profile-goal">Objetivo: perder gordura abdominal e ganhar massa muscular (principalmente braços), buscando a barriga mais chapada até fevereiro de 2027.</p>
+      <p class="profile-goal" id="p-objetivo">Defina seu objetivo em Minha conta.</p>
+    </section>
+
+    <section class="settings-block account-block">
+      <h2 class="section-title">Minha conta</h2>
+      <p class="settings-hint" id="account-email"></p>
+      <form id="form-account" class="settings-form">
+        <label>Nome
+          <input type="text" name="nome" required>
+        </label>
+        <label>Peso atual (kg)
+          <input type="number" name="peso" min="20" max="500" step="0.1">
+        </label>
+        <label>Altura (m)
+          <input type="number" name="altura" min="0.5" max="3" step="0.01">
+        </label>
+        <label>Objetivo
+          <input type="text" name="objetivo" placeholder="Ex.: ganhar massa muscular">
+        </label>
+        <button type="submit" class="btn-primary">Salvar perfil</button>
+      </form>
+      <p class="sync-status" id="sync-status">Verificando sincronização…</p>
+    </section>
+
+    <section class="settings-block">
+      <h2 class="section-title">Meu treino</h2>
+      <p class="settings-hint">Envie um PDF ou DOCX de até 10 MB. O arquivo fica privado na sua conta.</p>
+      <input type="file" id="workout-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <button class="btn-secondary" id="btn-upload-workout">Enviar PDF/DOCX</button>
+      <div class="workout-files" id="workout-files"></div>
+    </section>
+
+    <section class="settings-block">
+      <button class="btn-secondary" id="btn-signout">Sair da conta</button>
     </section>
 
     <section class="settings-block">
@@ -341,6 +400,9 @@
 <!-- ===================== TOAST ===================== -->
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="script.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
-  "name": "Rotina — João",
-  "short_name": "Rotina",
+  "name": "Minha Dieta",
+  "short_name": "Minha Dieta",
   "description": "Acompanhamento pessoal de dieta, treino, água e evolução física.",
   "start_url": "./index.html",
   "scope": "./",
