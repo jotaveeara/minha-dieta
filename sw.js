@@ -1,10 +1,10 @@
 /* =========================================================
    ROTINA — JOÃO — Service Worker
-   Estratégia: cache-first para o app shell, com atualização
-   em segundo plano. Funciona 100% offline após a 1ª visita.
+   Estratégia: network-first para código e cache-first para mídia.
+   Evita misturar HTML novo com JavaScript antigo após publicações.
    ========================================================= */
 
-const CACHE_VERSION = "v16";
+const CACHE_VERSION = "v17";
 const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 
 // Caminhos relativos ao escopo do service worker — funciona tanto
@@ -13,10 +13,10 @@ const CACHE_NAME = `joaofit-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css",
-  "./script.js",
-  "./auth.js",
-  "./supabase-config.js",
+  "./style.css?v=17",
+  "./script.js?v=17",
+  "./auth.js?v=17",
+  "./supabase-config.js?v=17",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
@@ -49,20 +49,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const networkFetch = fetch(req)
-        .then((res) => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
-          }
-          return res;
-        })
-        .catch(() => cached || caches.match("./index.html"));
+  const codeRequest = req.mode === "navigate" || ["script", "style", "document"].includes(req.destination);
+  if (codeRequest) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        }
+        return res;
+      }).catch(async () => (await caches.match(req)) || caches.match("./index.html"))
+    );
+    return;
+  }
 
-      // cache-first: responde rápido com o cache e atualiza em segundo plano
-      return cached || networkFetch;
-    })
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
+      if (res && res.status === 200) {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+      }
+      return res;
+    }))
   );
 });
