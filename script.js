@@ -1712,6 +1712,288 @@ document.getElementById("diet-editor-delete").addEventListener("click", () => {
 });
 
 /* ---------------------------------------------------------
+   16A. GERADOR DE PLANO ALIMENTAR BASE
+--------------------------------------------------------- */
+const baseDietModal = document.getElementById("modal-base-diet");
+const baseDietForm = document.getElementById("form-base-diet");
+const BASE_DIET_MEAL_TYPES = {
+  3: ["breakfast", "lunch", "dinner"],
+  4: ["breakfast", "lunch", "snack", "dinner"],
+  5: ["breakfast", "snack", "lunch", "snack", "dinner"],
+  6: ["breakfast", "snack", "lunch", "snack", "dinner", "supper"]
+};
+const BASE_DIET_TITLES = {
+  breakfast: "Café da manhã", lunch: "Almoço", snack: "Lanche",
+  dinner: "Jantar", supper: "Ceia"
+};
+const BASE_DIET_DAIRY = new Set(["iogurte_natural", "iogurte_desnatado", "leite_integral", "queijo_minas", "mucarela", "ricota"]);
+const BASE_DIET_GLUTEN = new Set(["pao_frances", "pao_integral", "macarrao_cozido", "aveia_flocos_crua"]);
+const BASE_DIET_MEATS = new Set(["frango_peito_grelhado", "frango_peito_cozido", "frango_sobrecoxa_assada", "patinho_grelhado", "acem_moido_cozido", "hamburguer_grelhado", "lombo_assado", "tilapia_grelhada", "atum_oleo"]);
+const BASE_DIET_RED_MEATS = new Set(["patinho_grelhado", "acem_moido_cozido", "hamburguer_grelhado", "lombo_assado"]);
+
+function baseDietFood(key) {
+  return FOOD_PRESETS.find(food => food.key === key) || null;
+}
+
+function clockToMinutes(value, fallback = 0) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : fallback;
+}
+
+function minutesToClock(value) {
+  const normalized = ((Math.round(value) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+}
+
+function baseDietTimes(count) {
+  const wake = clockToMinutes(state.customRoutine?.wakeTime, 7 * 60);
+  let sleep = clockToMinutes(state.customRoutine?.sleepTime, 23 * 60);
+  if (sleep <= wake) sleep += 1440;
+  const start = wake + 30;
+  const end = Math.max(start + (count - 1) * 120, sleep - 90);
+  const interval = count > 1 ? (end - start) / (count - 1) : 0;
+  return Array.from({ length: count }, (_, index) => minutesToClock(start + interval * index));
+}
+
+function baseDietConfigFromForm() {
+  return {
+    goal: baseDietForm.goal.value,
+    targetKcal: Number(baseDietForm.target_kcal.value),
+    targetProtein: Number(baseDietForm.target_protein.value),
+    mealCount: Number(baseDietForm.meal_count.value),
+    style: baseDietForm.style.value,
+    budget: baseDietForm.budget.value,
+    cooking: baseDietForm.cooking.value,
+    primaryCarb: baseDietForm.primary_carb.value,
+    trainingTime: baseDietForm.training_time.value || "",
+    restrictions: [...baseDietForm.querySelectorAll('[name="restrictions"]:checked')].map(input => input.value),
+    avoid: baseDietForm.avoid.value.split(/[,;\n]+/).map(value => normalizeDietSearch(value)).filter(value => value.length > 1)
+  };
+}
+
+function baseDietFoodAllowed(food, config) {
+  if (!food) return false;
+  const restrictions = new Set(config.restrictions || []);
+  if (restrictions.has("lactose") && BASE_DIET_DAIRY.has(food.key)) return false;
+  if (restrictions.has("egg") && food.key.startsWith("ovo_")) return false;
+  if (restrictions.has("gluten") && BASE_DIET_GLUTEN.has(food.key)) return false;
+  if (restrictions.has("peanut") && food.key === "amendoim_torrado") return false;
+  if (config.style === "vegetarian" && BASE_DIET_MEATS.has(food.key)) return false;
+  if (config.style === "no_red_meat" && BASE_DIET_RED_MEATS.has(food.key)) return false;
+  const searchable = [food.nome, ...(food.aliases || [])].map(normalizeDietSearch).join(" ");
+  return !(config.avoid || []).some(term => searchable.includes(term));
+}
+
+function pickBaseDietFood(keys, config, offset = 0) {
+  const available = keys.map(baseDietFood).filter(food => baseDietFoodAllowed(food, config));
+  return available.length ? available[offset % available.length] : null;
+}
+
+function addBaseDietComponent(components, food, grams) {
+  if (!food || !(grams > 0)) return;
+  const existing = components.find(component => component.food.key === food.key);
+  if (existing) existing.grams += grams;
+  else components.push({ food, grams });
+}
+
+function createBaseDietMeal(type, index, config) {
+  const components = [];
+  const fruit = pickBaseDietFood(["banana_prata", "maca_fuji", "mamao_formosa", "laranja_pera", "manga_palmer", "abacaxi_cru"], config, index);
+  const vegetable = pickBaseDietFood(["brocolis_cozido", "cenoura_cozida", "abobora_cabotia", "tomate_cru", "abobrinha_cozida"], config, index);
+  const carb = pickBaseDietFood([config.primaryCarb, "arroz_branco_cozido", "batata_doce_cozida", "mandioca_cozida", "polenta"], config, index);
+  const legume = pickBaseDietFood(["feijao_carioca_cozido", "lentilha_cozida", "feijao_preto_cozido", "ervilha_conserva"], config, index);
+  const mainProteinKeys = config.style === "vegetarian"
+    ? ["ovo_cozido", "lentilha_cozida", "feijao_carioca_cozido", "ricota"]
+    : config.budget === "economy"
+      ? ["frango_peito_grelhado", "ovo_cozido", "acem_moido_cozido", "tilapia_grelhada"]
+      : ["tilapia_grelhada", "frango_peito_grelhado", "patinho_grelhado", "atum_oleo", "ovo_cozido"];
+  const protein = pickBaseDietFood(mainProteinKeys, config, index);
+  const breakfastCarb = pickBaseDietFood(["pao_integral", "aveia_flocos_crua", "pao_frances", "batata_doce_cozida"], config, index);
+  const lightProtein = pickBaseDietFood(
+    config.style === "vegetarian"
+      ? ["iogurte_natural", "ovo_cozido", "ricota", "lentilha_cozida", "amendoim_torrado"]
+      : ["iogurte_natural", "ovo_cozido", "leite_integral", "atum_oleo", "frango_peito_cozido", "amendoim_torrado"],
+    config,
+    index
+  );
+
+  if (type === "breakfast") {
+    addBaseDietComponent(components, breakfastCarb, breakfastCarb?.key.includes("pao") ? 50 : 40);
+    addBaseDietComponent(components, lightProtein, BASE_DIET_DAIRY.has(lightProtein?.key) ? (lightProtein?.key === "leite_integral" ? 200 : 170) : lightProtein?.key === "amendoim_torrado" ? 25 : 100);
+    addBaseDietComponent(components, fruit, fruit?.unitGrams || 100);
+  } else if (type === "lunch" || type === "dinner") {
+    const dinnerFactor = type === "dinner" ? 0.85 : 1;
+    addBaseDietComponent(components, carb, 150 * dinnerFactor);
+    addBaseDietComponent(components, legume, 100 * dinnerFactor);
+    addBaseDietComponent(components, protein, 140 * dinnerFactor);
+    addBaseDietComponent(components, vegetable, 100);
+  } else if (type === "snack") {
+    addBaseDietComponent(components, fruit, fruit?.unitGrams || 100);
+    addBaseDietComponent(components, lightProtein, BASE_DIET_DAIRY.has(lightProtein?.key) ? (lightProtein?.key === "leite_integral" ? 200 : 170) : lightProtein?.key === "amendoim_torrado" ? 25 : 80);
+    if (config.cooking === "normal") addBaseDietComponent(components, breakfastCarb, breakfastCarb?.key.includes("pao") ? 25 : 25);
+  } else {
+    addBaseDietComponent(components, lightProtein, BASE_DIET_DAIRY.has(lightProtein?.key) ? (lightProtein?.key === "leite_integral" ? 200 : 170) : lightProtein?.key === "amendoim_torrado" ? 20 : 80);
+    addBaseDietComponent(components, fruit, fruit?.unitGrams || 100);
+  }
+  return components;
+}
+
+function baseDietComponentTotals(components) {
+  return components.reduce((totals, component) => {
+    const factor = component.grams / 100;
+    totals.kcal += Number(component.food.kcal) * factor;
+    totals.proteina += Number(component.food.proteina) * factor;
+    totals.carboidrato += Number(component.food.carboidrato) * factor;
+    totals.gordura += Number(component.food.gordura) * factor;
+    return totals;
+  }, { kcal: 0, proteina: 0, carboidrato: 0, gordura: 0 });
+}
+
+function buildBaseDietPlan(config) {
+  const types = BASE_DIET_MEAL_TYPES[config.mealCount] || BASE_DIET_MEAL_TYPES[4];
+  const times = baseDietTimes(types.length);
+  const rawMeals = types.map((type, index) => ({ type, time: times[index], components: createBaseDietMeal(type, index, config) }));
+  const baseTotals = baseDietComponentTotals(rawMeals.flatMap(meal => meal.components));
+  if (baseTotals.kcal < 500) throw new Error("As restrições eliminaram alimentos demais. Revise as opções informadas");
+  const factor = Math.min(2.4, Math.max(0.55, config.targetKcal / baseTotals.kcal));
+  rawMeals.forEach(meal => meal.components.forEach(component => {
+    component.grams = Math.max(5, Math.round(component.grams * factor / 5) * 5);
+  }));
+
+  const trainingMinutes = clockToMinutes(config.trainingTime, -1);
+  if (trainingMinutes >= 0) {
+    const indexedTimes = times.map((time, index) => ({ index, minutes: clockToMinutes(time) }));
+    const before = indexedTimes.filter(item => item.minutes <= trainingMinutes).pop();
+    const after = indexedTimes.find(item => item.minutes > trainingMinutes);
+    if (before && types[before.index] === "snack") rawMeals[before.index].customTitle = "Pré-treino";
+    if (after && types[after.index] === "snack") rawMeals[after.index].customTitle = "Pós-treino";
+  }
+
+  const repeatedTitles = {};
+  const meals = rawMeals.map((meal, index) => {
+    const defaultTitle = meal.customTitle || BASE_DIET_TITLES[meal.type];
+    repeatedTitles[defaultTitle] = (repeatedTitles[defaultTitle] || 0) + 1;
+    const title = repeatedTitles[defaultTitle] > 1 ? `${defaultTitle} ${repeatedTitles[defaultTitle]}` : defaultTitle;
+    return {
+      id: `base_diet_meal_${index + 1}`,
+      title,
+      time: meal.time,
+      items: meal.components.map(component => `${Math.round(component.grams)} g de ${component.food.nome}`)
+    };
+  });
+  const goalLabels = { lose: "redução de peso", maintain: "manutenção de peso", gain: "ganho de massa" };
+  const warnings = [];
+  rawMeals.forEach((meal, index) => {
+    if (meal.components.length < 2) warnings.push(`${meals[index].title}: poucas opções compatíveis com as restrições informadas.`);
+  });
+  const plan = enrichDietPlan({
+    source: "Plano alimentar base criado no aplicativo",
+    parsedAt: new Date().toISOString(),
+    parserVersion: 4,
+    baseConfig: { ...config, avoid: [...config.avoid], restrictions: [...config.restrictions] },
+    meals,
+    generalNotes: [
+      `Objetivo informado: ${goalLabels[config.goal] || "organização alimentar"}.`,
+      `Metas usadas no cálculo: ${config.targetKcal} kcal e pelo menos ${config.targetProtein} g de proteína por dia. Altere as metas no Perfil quando necessário.`,
+      "Sugestão baseada principalmente em alimentos in natura ou minimamente processados. Todas as refeições podem ser editadas."
+    ],
+    warnings
+  });
+  const totals = dietPlanTotals(plan);
+  if (Math.abs(totals.kcal - config.targetKcal) / config.targetKcal > 0.12) {
+    plan.warnings.push(`O plano chegou a ${Math.round(totals.kcal)} kcal. Ajuste as porções manualmente para se aproximar da meta de ${config.targetKcal} kcal.`);
+  }
+  if (totals.proteina < config.targetProtein * 0.85) {
+    plan.warnings.push(`A combinação selecionada chegou a ${Math.round(totals.proteina)} g de proteína, abaixo da meta de ${config.targetProtein} g. Revise as restrições ou edite as fontes proteicas.`);
+  }
+  return plan;
+}
+
+function updateBaseDietPreview() {
+  const preview = document.getElementById("base-diet-preview");
+  const safety = document.getElementById("base-diet-safety");
+  const submit = baseDietForm.querySelector('[type="submit"]');
+  const age = Number(state.profile?.idade);
+  if (age > 0 && age < 18) {
+    preview.innerHTML = '<div class="base-diet-preview-warning">O gerador automático não é disponibilizado para menores de 18 anos.</div>';
+    safety.textContent = "Menores de 18 anos devem organizar a alimentação com o responsável e um profissional habilitado.";
+    submit.disabled = true;
+    return;
+  }
+  submit.disabled = false;
+  safety.textContent = "Em caso de alergia grave, doença, gestação, uso de medicação ou necessidade clínica, não use o gerador sem orientação profissional.";
+  try {
+    const plan = buildBaseDietPlan(baseDietConfigFromForm());
+    const totals = dietPlanTotals(plan);
+    preview.innerHTML = `
+      <div class="base-diet-preview-summary">
+        <div><b>${Math.round(totals.kcal)}</b><span>kcal</span></div>
+        <div><b>${Math.round(totals.proteina)} g</b><span>proteína</span></div>
+        <div><b>${Math.round(totals.carboidrato)} g</b><span>carboidrato</span></div>
+        <div><b>${Math.round(totals.gordura)} g</b><span>gordura</span></div>
+      </div>
+      <div class="base-diet-preview-meals">${plan.meals.map(meal => `<b>${meal.time}</b> ${meal.title}`).join(" · ")}</div>
+      ${plan.warnings.length ? `<div class="base-diet-preview-warning">${plan.warnings.join(" ")}</div>` : ""}`;
+  } catch (error) {
+    preview.innerHTML = `<div class="base-diet-preview-warning">${error.message}.</div>`;
+    submit.disabled = true;
+  }
+}
+
+function inferredBaseDietGoal() {
+  const objective = normalizeDietSearch(state.profile?.objetivo);
+  if (/emagre|reduzir|perder/.test(objective)) return "lose";
+  if (/ganhar|massa|hipertrofia/.test(objective)) return "gain";
+  return "maintain";
+}
+
+function openBaseDietModal() {
+  baseDietForm.reset();
+  const previous = state.dietPlan?.baseConfig || {};
+  const savedMealCount = Number(previous.mealCount || state.customRoutine?.mealCount || 4);
+  const savedTarget = Number(previous.targetKcal || state.metas?.kcal || 2000);
+  const savedProtein = Number(previous.targetProtein || state.metas?.proteinaMin || 100);
+  baseDietForm.goal.value = previous.goal || inferredBaseDietGoal();
+  baseDietForm.target_kcal.value = Math.min(4000, Math.max(1200, savedTarget));
+  baseDietForm.target_protein.value = Math.min(300, Math.max(40, savedProtein));
+  baseDietForm.meal_count.value = String([3, 4, 5, 6].includes(savedMealCount) ? savedMealCount : 4);
+  baseDietForm.style.value = previous.style || "omnivore";
+  baseDietForm.budget.value = previous.budget || "economy";
+  baseDietForm.cooking.value = previous.cooking || "normal";
+  baseDietForm.primary_carb.value = previous.primaryCarb || "arroz_branco_cozido";
+  baseDietForm.training_time.value = previous.trainingTime || state.customRoutine?.trainingTime || "";
+  baseDietForm.avoid.value = (previous.avoid || []).join(", ");
+  const restrictions = new Set(previous.restrictions || []);
+  baseDietForm.querySelectorAll('[name="restrictions"]').forEach(input => { input.checked = restrictions.has(input.value); });
+  updateBaseDietPreview();
+  baseDietModal.hidden = false;
+}
+
+function closeBaseDietModal() { baseDietModal.hidden = true; }
+
+document.getElementById("btn-base-diet").addEventListener("click", openBaseDietModal);
+document.getElementById("base-diet-cancel").addEventListener("click", closeBaseDietModal);
+baseDietModal.addEventListener("click", event => { if (event.target === baseDietModal) closeBaseDietModal(); });
+baseDietForm.addEventListener("input", updateBaseDietPreview);
+baseDietForm.addEventListener("change", updateBaseDietPreview);
+baseDietForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const age = Number(state.profile?.idade);
+  if (age > 0 && age < 18) return showToast("O plano automático não está disponível para menores de 18 anos.");
+  const plan = buildBaseDietPlan(baseDietConfigFromForm());
+  if ((state.dietPlan?.meals || []).length && !window.confirm("Criar o plano-base substituirá o plano alimentar atual. Deseja continuar?")) return;
+  state.dietPlan = plan;
+  state.customRoutine.mealCount = plan.meals.length;
+  saveState();
+  if (window.persistRoutineConfig) await window.persistRoutineConfig(state.customRoutine);
+  closeBaseDietModal();
+  renderDieta();
+  renderHoje();
+  renderSemana();
+  showToast("Plano alimentar base criado. Todas as refeições podem ser editadas.");
+});
+
+/* ---------------------------------------------------------
    17. RENDER — TREINO SEPARADO DA ALIMENTAÇÃO
 --------------------------------------------------------- */
 function createExerciseList(exercises) {

@@ -14,6 +14,20 @@ Os valores da base local usam principalmente a TACO/NEPA-Unicamp. Itens marcados
 
 A aba Treino possui a opção **Excluir plano de treino**. Após confirmação, ela remove o plano atual, os dias programados e as marcações de treino concluído, mantendo perfil, dieta, refeições e evolução.
 
+## Etapa 7 — plano alimentar base
+
+- criação de uma sugestão inicial com 3 a 6 refeições;
+- uso das metas de calorias e proteínas configuradas no Perfil;
+- opções de objetivo, estilo alimentar, orçamento, tempo para cozinhar e carboidrato preferido;
+- filtros para leite/lactose, ovo, glúten, amendoim e alimentos indesejados;
+- horários distribuídos conforme acordar/dormir e identificação de pré/pós-treino;
+- cálculo automático dos quatro macronutrientes;
+- aviso quando a combinação de restrições não consegue se aproximar da meta;
+- edição completa de cada refeição após a criação;
+- bloqueio do gerador automático para menores de 18 anos.
+
+O plano-base é apenas uma ferramenta de organização geral. Situações clínicas, gestação, alergias graves, uso de medicamentos e necessidades específicas exigem avaliação profissional.
+
 Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável no celular.
 
 ## Arquivos

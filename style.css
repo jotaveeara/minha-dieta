@@ -107,6 +107,7 @@ button, input, select, textarea {
 .diet-title-row .view-subtitle { margin-bottom: 0; }
 .diet-import-btn { margin-bottom: 2px; padding: 9px 11px; border: 1px solid rgba(111,207,143,.42); border-radius: 9px; background: rgba(111,207,143,.10); color: var(--green); font-size: 11.5px; font-weight: 750; }
 .diet-import-status { margin: 14px 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.45; }
+.diet-base-callout { margin-top: 0; margin-bottom: 14px; }
 .diet-source-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 14px; border: 1px solid rgba(111,207,143,.3); border-radius: var(--radius-md); background: rgba(111,207,143,.07); }
 .diet-source-card > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .diet-source-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -174,6 +175,24 @@ button, input, select, textarea {
 .base-preview-day b { font-size: 11.5px; }
 .base-preview-day span { color: var(--text-muted); font-size: 10.5px; text-align: right; }
 .base-plan-safety { margin: 0; padding: 10px 11px; border-left: 3px solid var(--amber); background: var(--amber-dim); color: var(--text-muted); font-size: 10.5px; line-height: 1.45; }
+.base-diet-sheet { max-height: 92vh; overflow-y: auto; }
+.base-diet-form { grid-template-columns: 1fr; }
+.base-diet-form .onboarding-grid { grid-column: 1 / -1; }
+.base-diet-form label small { color: var(--text-faint); font-size: 10px; font-weight: 500; }
+.base-diet-restrictions { grid-column: 1 / -1; margin: 0; padding: 12px; border: 1px solid var(--surface-border); border-radius: var(--radius-md); }
+.base-diet-restrictions legend { padding: 0 5px; color: var(--text-muted); font-size: 11.5px; font-weight: 750; }
+.base-diet-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.base-diet-checks label { flex-direction: row; align-items: center; gap: 7px; padding: 9px; border: 1px solid var(--surface-border); border-radius: 9px; background: var(--surface-2); color: var(--text); }
+.base-diet-checks input { width: 17px; height: 17px; accent-color: var(--amber); }
+.base-diet-avoid { grid-column: 1 / -1; }
+.base-diet-preview { grid-column: 1 / -1; display: grid; gap: 7px; }
+.base-diet-preview-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 11px; border: 1px solid rgba(var(--amber-rgb),.3); border-radius: var(--radius-md); background: var(--amber-dim); }
+.base-diet-preview-summary div { display: flex; flex-direction: column; gap: 2px; }
+.base-diet-preview-summary b { color: var(--text); font-size: 12px; }
+.base-diet-preview-summary span { color: var(--text-faint); font-size: 9px; text-transform: uppercase; }
+.base-diet-preview-meals { color: var(--text-muted); font-size: 11.5px; line-height: 1.45; }
+.base-diet-preview-warning { padding: 9px 10px; border-radius: 9px; background: rgba(232,87,74,.09); color: var(--coral); font-size: 11px; line-height: 1.4; }
+.base-diet-form > .base-plan-safety { grid-column: 1 / -1; }
 @media (max-width: 410px) { .base-plan-callout { align-items: flex-start; flex-direction: column; } .base-plan-callout button { width: 100%; } }
 .training-today { margin-top: 16px; padding: 18px; border: 1px solid rgba(232,87,74,.35); border-radius: var(--radius-lg); background: var(--surface); }
 .training-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }

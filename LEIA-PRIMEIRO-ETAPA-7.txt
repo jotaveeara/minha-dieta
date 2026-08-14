@@ -1,0 +1,32 @@
+ETAPA 7 — PLANO ALIMENTAR BASE
+
+O que foi incluído:
+- botão Criar plano base na aba Dieta;
+- sugestão de 3 a 6 refeições por dia;
+- uso das metas de calorias e proteínas do Perfil;
+- objetivo, estilo alimentar, orçamento e tempo para cozinhar;
+- escolha de carboidrato preferido;
+- filtros para leite/lactose, ovo, glúten e amendoim;
+- campo para alimentos que o usuário não deseja consumir;
+- horários calculados a partir da rotina diária;
+- identificação de pré e pós-treino;
+- cálculo de calorias, proteínas, carboidratos e gorduras;
+- aviso quando as restrições impedem atingir a meta de proteína;
+- todas as refeições continuam editáveis;
+- proteção para menores de 18 anos.
+
+IMPORTANTE
+
+O gerador oferece uma sugestão geral de organização alimentar. Não realiza diagnóstico nem substitui nutricionista ou médico. Alergias graves, doenças, gestação, uso de medicamentos e necessidades clínicas exigem orientação profissional.
+
+COMO PUBLICAR
+
+1. Abra o repositório minha-dieta no GitHub.
+2. Clique em Add file e depois Upload files.
+3. Envie TODOS os arquivos deste pacote.
+4. Confirme a substituição dos arquivos existentes.
+5. Faça o commit diretamente na branch main.
+6. Aguarde o GitHub Pages ficar verde.
+7. Feche e abra novamente o aplicativo. Se aparecer a versão antiga, remova o atalho instalado e instale novamente.
+
+Não é necessário executar código SQL no Supabase.

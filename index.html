@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=29">
+<link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
 
@@ -292,6 +292,10 @@
     </div>
     <input type="file" id="diet-input" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
     <p class="diet-import-status" id="diet-import-status">Envie um PDF ou DOCX com refeições, alimentos e quantidades.</p>
+    <section class="base-plan-callout diet-base-callout">
+      <div><b>Não tem um plano alimentar?</b><span>Monte uma sugestão-base com seus horários, preferências e restrições. Tudo poderá ser editado.</span></div>
+      <button type="button" id="btn-base-diet">Criar plano base</button>
+    </section>
     <section class="diet-source-card" id="diet-source-card" hidden></section>
     <section class="diet-plan-summary" id="diet-plan-summary" hidden></section>
     <section class="diet-meals-section">
@@ -562,7 +566,7 @@
       <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
     </section>
 
-    <p class="app-version">Minha Dieta · v1.5</p>
+    <p class="app-version">Minha Dieta · v1.6</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->
@@ -687,6 +691,64 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: PLANO ALIMENTAR BASE ===================== -->
+<div class="modal-overlay" id="modal-base-diet" hidden>
+  <div class="modal-sheet base-diet-sheet">
+    <div class="modal-handle"></div>
+    <h3>Criar plano alimentar base</h3>
+    <p class="editor-help">O aplicativo organizará uma sugestão editável usando a meta calórica configurada. Não substitui avaliação profissional.</p>
+    <form id="form-base-diet" class="settings-form base-diet-form">
+      <div class="onboarding-grid">
+        <label>Objetivo principal
+          <select name="goal"><option value="lose">Reduzir peso</option><option value="maintain">Manter peso</option><option value="gain">Ganhar massa</option></select>
+        </label>
+        <label>Meta diária usada
+          <input type="number" name="target_kcal" min="1200" max="4000" step="50" required>
+          <small>Calorias configuradas no Perfil.</small>
+        </label>
+        <label>Proteína mínima usada
+          <input type="number" name="target_protein" min="40" max="300" step="5" required>
+          <small>Meta configurada no Perfil.</small>
+        </label>
+        <label>Refeições por dia
+          <select name="meal_count"><option value="3">3 refeições</option><option value="4">4 refeições</option><option value="5">5 refeições</option><option value="6">6 refeições</option></select>
+        </label>
+        <label>Estilo alimentar
+          <select name="style"><option value="omnivore">Sem restrição de carnes</option><option value="no_red_meat">Sem carne vermelha</option><option value="vegetarian">Vegetariano com ovos/leite</option></select>
+        </label>
+        <label>Orçamento
+          <select name="budget"><option value="economy">Mais econômico</option><option value="varied">Mais variado</option></select>
+        </label>
+        <label>Tempo para cozinhar
+          <select name="cooking"><option value="quick">Pouco tempo</option><option value="normal">Consigo preparar refeições</option></select>
+        </label>
+        <label>Carboidrato preferido
+          <select name="primary_carb"><option value="arroz_branco_cozido">Arroz</option><option value="batata_doce_cozida">Batata-doce</option><option value="mandioca_cozida">Mandioca</option></select>
+        </label>
+        <label>Horário habitual do treino
+          <input type="time" name="training_time">
+        </label>
+      </div>
+      <fieldset class="base-diet-restrictions">
+        <legend>Restrições e alergias informadas</legend>
+        <div class="base-diet-checks">
+          <label><input type="checkbox" name="restrictions" value="lactose"><span>Leite/lactose</span></label>
+          <label><input type="checkbox" name="restrictions" value="egg"><span>Ovo</span></label>
+          <label><input type="checkbox" name="restrictions" value="gluten"><span>Glúten</span></label>
+          <label><input type="checkbox" name="restrictions" value="peanut"><span>Amendoim</span></label>
+        </div>
+      </fieldset>
+      <label class="base-diet-avoid">Alimentos que não deseja usar
+        <textarea name="avoid" rows="2" placeholder="Ex.: banana, peixe, brócolis — separe por vírgulas"></textarea>
+      </label>
+      <div class="base-diet-preview" id="base-diet-preview"></div>
+      <p class="base-plan-safety" id="base-diet-safety">Em caso de alergia grave, doença, gestação, uso de medicação ou necessidade clínica, não use o gerador sem orientação profissional.</p>
+      <button type="submit" class="btn-primary">Criar este plano alimentar</button>
+      <button type="button" class="btn-secondary" id="base-diet-cancel">Cancelar</button>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== MODAL: EDITAR DIETA ===================== -->
 <div class="modal-overlay" id="modal-diet-editor" hidden>
   <div class="modal-sheet diet-editor-sheet">
@@ -793,9 +855,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=29"></script>
-<script src="food-data.js?v=29"></script>
-<script src="script.js?v=29"></script>
-<script src="auth.js?v=29"></script>
+<script src="supabase-config.js?v=30"></script>
+<script src="food-data.js?v=30"></script>
+<script src="script.js?v=30"></script>
+<script src="auth.js?v=30"></script>
 </body>
 </html>
