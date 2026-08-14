@@ -36,7 +36,7 @@ const DEFAULT_STATE = {
     commitment: { enabled: false, name: "", days: [], start: "08:00", end: "12:00" }
   },
   workoutPlan: { source: "", parsedAt: null, days: {} },
-  dietPlan: { source: "", parsedAt: null, parserVersion: 2, meals: [], generalNotes: [], warnings: [] },
+  dietPlan: { source: "", parsedAt: null, parserVersion: 4, meals: [], generalNotes: [], warnings: [] },
   appearance: { theme: "amber" },
   reduzirFimDeSemana: false,
   // overrides por data ISO (YYYY-MM-DD), usado principalmente na segunda-feira
@@ -45,7 +45,8 @@ const DEFAULT_STATE = {
   substitutions: {},         // { "2026-08-17": { "meal_almoco": "patinho" } }
   freeMealUse: {},           // { "2026-w34": { data:"2026-08-17", eventId:"meal_jantar" } }
   water: {},                 // { "2026-08-17": 1500 } (ml)
-  foodLog: {},               // { "2026-08-17": [{id,nome,gramas,kcal100,proteina100,fonte}] }
+  foodLog: {},               // { "2026-08-17": [{id,nome,gramas,kcal100,proteina100,carboidrato100,gordura100,fonte}] }
+  foodLibrary: { favorites: [], recent: [] },
   weightLog: [],             // [{id,data,peso,cintura,braco,obs}]
   createdAt: todayISO()
 };
@@ -506,7 +507,7 @@ function calcDayTotals(dateObj) {
   const iso = isoFromDate(dateObj);
   const plan = getDayPlan(dateObj);
   const comp = getCompletionsForDate(iso);
-  let kcal = 0, proteina = 0;
+  let kcal = 0, proteina = 0, carboidrato = 0, gordura = 0;
   plan.eventos.forEach(ev => {
     if (ev.type === "refeicao" && comp[ev.id]) {
       if (isFreeMealEvent(iso, ev.id)) return; // refeição livre não soma na meta
@@ -519,8 +520,15 @@ function calcDayTotals(dateObj) {
     const factor = Number(item.gramas) / 100;
     kcal += Number(item.kcal100) * factor;
     proteina += Number(item.proteina100) * factor;
+    carboidrato += (Number(item.carboidrato100) || 0) * factor;
+    gordura += (Number(item.gordura100) || 0) * factor;
   });
-  return { kcal: Math.round(kcal), proteina: Math.round(proteina) };
+  return {
+    kcal: Math.round(kcal),
+    proteina: Math.round(proteina * 10) / 10,
+    carboidrato: Math.round(carboidrato * 10) / 10,
+    gordura: Math.round(gordura * 10) / 10
+  };
 }
 
 function getWaterMl(iso) { return state.water[iso] || 0; }
@@ -631,7 +639,7 @@ function renderHoje() {
   const planned = dietPlanTotals(dietPlan);
   dietSummary.hidden = !dietPlan.meals.length;
   if (dietPlan.meals.length) {
-    document.getElementById("today-diet-plan-macros").textContent = `${Math.round(planned.kcal)} kcal · ${Math.round(planned.proteina)} g proteína`;
+    document.getElementById("today-diet-plan-macros").textContent = `${Math.round(planned.kcal)} kcal · P ${Math.round(planned.proteina)} · C ${Math.round(planned.carboidrato)} · G ${Math.round(planned.gordura)} g`;
     document.getElementById("today-diet-plan-status").textContent = `${planned.calculated} de ${planned.items} item(ns) calculado(s). Os cartões acima somam somente refeições marcadas como comidas.`;
   }
 
@@ -847,7 +855,7 @@ document.getElementById("modal-substituir").addEventListener("click", (e) => {
 let editingFoodId = null;
 
 // Valores por 100 g. Fonte principal: TACO/NEPA-Unicamp, 4ª edição.
-const FOOD_PRESETS = [
+const LEGACY_FOOD_PRESETS = [
   { nome: "Arroz branco cozido", kcal: 128, proteina: 2.5 },
   { nome: "Arroz integral cozido", kcal: 124, proteina: 2.6 },
   { nome: "Feijão carioca cozido", kcal: 76, proteina: 4.8 },
@@ -878,7 +886,7 @@ const FOOD_PRESETS = [
 
 // Base local para interpretar automaticamente itens escritos no plano.
 // Valores por 100 g/ml; porções unitárias são estimativas de peso comestível.
-const DIET_NUTRITION_TABLE = [
+const LEGACY_DIET_NUTRITION_TABLE = [
   { key: "ovo", name: "Ovo de galinha cozido", kcal100: 146, protein100: 13.3, aliases: ["ovos inteiros", "ovo inteiro", "ovos", "ovo"], unitGrams: 50 },
   { key: "arroz_integral", name: "Arroz integral cozido", kcal100: 124, protein100: 2.6, aliases: ["arroz integral"] },
   { key: "arroz", name: "Arroz branco cozido", kcal100: 128, protein100: 2.5, aliases: ["arroz branco", "arroz"] },
@@ -906,6 +914,32 @@ const DIET_NUTRITION_TABLE = [
   { key: "whey", name: "Whey protein (estimativa)", kcal100: 400, protein100: 80, aliases: ["whey protein", "whey"], scoopGrams: 30, approximate: true },
   { key: "cafe", name: "Café sem açúcar", kcal100: 9, protein100: 0.7, aliases: ["cafe sem acucar", "cafe"], approximate: true }
 ];
+
+const FOOD_PRESETS = Array.isArray(window.FOOD_CATALOG) ? window.FOOD_CATALOG : LEGACY_FOOD_PRESETS.map((food, index) => ({
+  key: `legacy_${index}`,
+  nome: food.nome,
+  categoria: "Outros",
+  preparo: "Não informado",
+  kcal: food.kcal,
+  proteina: food.proteina,
+  carboidrato: 0,
+  gordura: 0,
+  aliases: [food.nome]
+}));
+
+const DIET_NUTRITION_TABLE = FOOD_PRESETS.map(food => ({
+  key: food.key,
+  name: food.nome,
+  kcal100: Number(food.kcal) || 0,
+  protein100: Number(food.proteina) || 0,
+  carb100: Number(food.carboidrato) || 0,
+  fat100: Number(food.gordura) || 0,
+  aliases: [...new Set([...(food.aliases || []), food.nome])],
+  unitGrams: food.unitGrams,
+  spoonGrams: food.spoonGrams,
+  scoopGrams: food.scoopGrams,
+  approximate: Boolean(food.approximate)
+}));
 
 function normalizeDietSearch(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9.,]+/g, " ").replace(/\s+/g, " ").trim();
@@ -947,15 +981,16 @@ function parseDietNutritionItem(raw, index = 0) {
   const text = typeof raw === "string" ? raw : String(raw?.text || raw?.name || "");
   const food = findDietFood(text);
   const quantity = parseDietQuantity(text, food);
-  const item = { id: typeof raw === "object" && raw?.id ? raw.id : `diet_item_${Date.now()}_${index}`, text, matched: false, nutritionVersion: 1 };
+  const item = { id: typeof raw === "object" && raw?.id ? raw.id : `diet_item_${Date.now()}_${index}`, text, matched: false, nutritionVersion: 2 };
   if (!food) return { ...item, issue: "Alimento não reconhecido na tabela." };
   if (!quantity) return { ...item, foodKey: food.key, foodName: food.name, issue: "Informe a quantidade em g, ml ou unidades." };
   const factor = quantity.grams / 100;
   return {
     ...item, matched: true, foodKey: food.key, foodName: food.name,
     grams: Math.round(quantity.grams * 10) / 10, quantityLabel: quantity.label,
-    kcal100: food.kcal100, protein100: food.protein100,
+    kcal100: food.kcal100, protein100: food.protein100, carb100: food.carb100, fat100: food.fat100,
     kcal: Math.round(food.kcal100 * factor), protein: Math.round(food.protein100 * factor * 10) / 10,
+    carbs: Math.round(food.carb100 * factor * 10) / 10, fat: Math.round(food.fat100 * factor * 10) / 10,
     perUnitKcal: quantity.count ? Math.round(food.kcal100 * food.unitGrams / 100) : null,
     perUnitProtein: quantity.count ? Math.round(food.protein100 * food.unitGrams / 10) / 10 : null,
     approximate: Boolean(food.approximate || quantity.approximate)
@@ -977,13 +1012,13 @@ function enrichDietPlan(plan = state.dietPlan) {
     title: meal.title || `Refeição ${mealIndex + 1}`,
     items: (Array.isArray(meal.items) ? meal.items : []).map((item, itemIndex) => parseDietNutritionItem(item, `${mealIndex}_${itemIndex}`))
   }));
-  safePlan.parserVersion = 2;
+  safePlan.parserVersion = 4;
   safePlan.nutritionUpdatedAt = new Date().toISOString();
   return safePlan;
 }
 
 function ensureDietPlanNutrition() {
-  if (!state.dietPlan || state.dietPlan.parserVersion < 2 || (state.dietPlan.meals || []).some(meal => (meal.items || []).some(item => typeof item === "string"))) {
+  if (!state.dietPlan || state.dietPlan.parserVersion < 4 || (state.dietPlan.meals || []).some(meal => (meal.items || []).some(item => typeof item === "string" || (item.matched && item.carbs === undefined)))) {
     state.dietPlan = enrichDietPlan(state.dietPlan);
     saveState();
   }
@@ -995,11 +1030,13 @@ function dietMealTotals(meal) {
     if (typeof item === "object" && item.matched) {
       totals.kcal += Number(item.kcal) || 0;
       totals.proteina += Number(item.protein) || 0;
+      totals.carboidrato += Number(item.carbs) || 0;
+      totals.gordura += Number(item.fat) || 0;
       totals.calculated += 1;
     }
     totals.items += 1;
     return totals;
-  }, { kcal: 0, proteina: 0, calculated: 0, items: 0 });
+  }, { kcal: 0, proteina: 0, carboidrato: 0, gordura: 0, calculated: 0, items: 0 });
 }
 
 function dietPlanTotals(plan = state.dietPlan) {
@@ -1007,21 +1044,61 @@ function dietPlanTotals(plan = state.dietPlan) {
     const mealTotals = dietMealTotals(meal);
     totals.kcal += mealTotals.kcal;
     totals.proteina += mealTotals.proteina;
+    totals.carboidrato += mealTotals.carboidrato;
+    totals.gordura += mealTotals.gordura;
     totals.calculated += mealTotals.calculated;
     totals.items += mealTotals.items;
     return totals;
-  }, { kcal: 0, proteina: 0, calculated: 0, items: 0 });
+  }, { kcal: 0, proteina: 0, carboidrato: 0, gordura: 0, calculated: 0, items: 0 });
 }
 
 window.enrichDietPlan = enrichDietPlan;
 
+const FOOD_MEAL_LABELS = {
+  cafe: "Café da manhã", lanche_manha: "Lanche da manhã", almoco: "Almoço",
+  lanche_tarde: "Lanche da tarde", jantar: "Jantar", ceia: "Ceia", outro: "Outro"
+};
+let selectedFoodKey = null;
+let selectedFoodSource = "Preenchimento manual";
+
+function ensureFoodLibrary() {
+  if (!state.foodLibrary || typeof state.foodLibrary !== "object") state.foodLibrary = { favorites: [], recent: [] };
+  if (!Array.isArray(state.foodLibrary.favorites)) state.foodLibrary.favorites = [];
+  if (!Array.isArray(state.foodLibrary.recent)) state.foodLibrary.recent = [];
+  return state.foodLibrary;
+}
+
+function foodIdentity(item) {
+  return item.foodKey || normalizeDietSearch(item.nome);
+}
+
+function foodSnapshot(item) {
+  return {
+    foodKey: item.foodKey || null, nome: item.nome, gramas: Number(item.gramas) || 100,
+    kcal100: Number(item.kcal100) || 0, proteina100: Number(item.proteina100) || 0,
+    carboidrato100: Number(item.carboidrato100) || 0, gordura100: Number(item.gordura100) || 0,
+    fonte: item.fonte || "Preenchimento manual", refeicao: item.refeicao || "outro"
+  };
+}
+
 function initFoodPresets() {
   const select = document.getElementById("food-preset");
-  FOOD_PRESETS.forEach((food, index) => {
-    const option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = food.nome;
-    select.appendChild(option);
+  const categories = new Map();
+  FOOD_PRESETS.forEach(food => {
+    const category = food.categoria || "Outros";
+    if (!categories.has(category)) categories.set(category, []);
+    categories.get(category).push(food);
+  });
+  [...categories.entries()].forEach(([category, foods]) => {
+    const group = document.createElement("optgroup");
+    group.label = category;
+    foods.forEach(food => {
+      const option = document.createElement("option");
+      option.value = food.key;
+      option.textContent = `${food.nome} — ${food.preparo || "não informado"}`;
+      group.appendChild(option);
+    });
+    select.appendChild(group);
   });
 }
 
@@ -1034,17 +1111,107 @@ function getFoodLogForDate(iso) {
 function foodTotals(item) {
   const factor = Number(item.gramas) / 100;
   return {
-    kcal: Math.round(Number(item.kcal100) * factor),
-    proteina: Math.round(Number(item.proteina100) * factor * 10) / 10
+    kcal: Math.round((Number(item.kcal100) || 0) * factor),
+    proteina: Math.round((Number(item.proteina100) || 0) * factor * 10) / 10,
+    carboidrato: Math.round((Number(item.carboidrato100) || 0) * factor * 10) / 10,
+    gordura: Math.round((Number(item.gordura100) || 0) * factor * 10) / 10
   };
+}
+
+function formatMacro(value) {
+  return Number(value || 0).toFixed(1).replace(".", ",");
+}
+
+function setFoodFormValues(food) {
+  selectedFoodKey = food.foodKey || food.key || null;
+  selectedFoodSource = food.fonte || "TACO/NEPA-Unicamp";
+  document.getElementById("food-name").value = food.nome;
+  document.getElementById("food-grams").value = Number(food.gramas) || Number(food.unitGrams) || 100;
+  document.getElementById("food-kcal100").value = Number(food.kcal100 ?? food.kcal ?? 0);
+  document.getElementById("food-protein100").value = Number(food.proteina100 ?? food.proteina ?? 0);
+  document.getElementById("food-carb100").value = Number(food.carboidrato100 ?? food.carboidrato ?? 0);
+  document.getElementById("food-fat100").value = Number(food.gordura100 ?? food.gordura ?? 0);
+  document.getElementById("food-meal").value = food.refeicao || "outro";
+  document.getElementById("food-favorite").checked = ensureFoodLibrary().favorites.some(item => foodIdentity(item) === foodIdentity({ foodKey: selectedFoodKey, nome: food.nome }));
+  document.getElementById("food-search-results").innerHTML = "";
+  updateFoodPreview();
+}
+
+function renderFoodSearchResults(query) {
+  const results = document.getElementById("food-search-results");
+  const status = document.getElementById("food-search-status");
+  results.innerHTML = "";
+  const normalized = normalizeDietSearch(query);
+  if (normalized.length < 2) {
+    status.textContent = "Digite para pesquisar primeiro na base local. Use Internet para produtos industrializados.";
+    return;
+  }
+  const matches = FOOD_PRESETS.map(food => {
+    const fields = [food.nome, ...(food.aliases || [])].map(normalizeDietSearch);
+    const exact = fields.some(value => value === normalized);
+    const starts = fields.some(value => value.startsWith(normalized));
+    const contains = fields.some(value => value.includes(normalized));
+    return { food, score: exact ? 3 : starts ? 2 : contains ? 1 : 0 };
+  }).filter(match => match.score).sort((a, b) => b.score - a.score || a.food.nome.localeCompare(b.food.nome, "pt-BR")).slice(0, 8);
+  if (!matches.length) {
+    status.textContent = "Não encontrado na base local. Use Internet ou informe os dados do rótulo.";
+    return;
+  }
+  status.textContent = `${matches.length} resultado(s) na base local. Selecione o preparo correto:`;
+  matches.forEach(({ food }) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "food-result";
+    button.innerHTML = `<span>${food.nome}</span><small>${food.preparo || "Preparo não informado"} · ${food.kcal} kcal · P ${formatMacro(food.proteina)} · C ${formatMacro(food.carboidrato)} · G ${formatMacro(food.gordura)} por 100 g</small>`;
+    button.addEventListener("click", () => {
+      setFoodFormValues(food);
+      document.getElementById("food-preset").value = food.key;
+      status.textContent = `${food.approximate ? "Valor aproximado" : "Tabela TACO"}. Confira o preparo e informe a quantidade consumida.`;
+    });
+    results.appendChild(button);
+  });
+}
+
+function renderFoodShortcuts() {
+  const library = ensureFoodLibrary();
+  const items = [...library.favorites, ...library.recent].filter((item, index, all) => all.findIndex(other => foodIdentity(other) === foodIdentity(item)) === index).slice(0, 8);
+  const targets = [
+    [document.getElementById("food-modal-shortcuts"), document.getElementById("food-modal-shortcut-list")],
+    [document.getElementById("food-quick-add"), document.getElementById("food-quick-list")]
+  ];
+  targets.forEach(([wrapper, list]) => {
+    if (!wrapper || !list) return;
+    wrapper.hidden = !items.length;
+    list.innerHTML = "";
+    items.forEach(item => {
+      const favorite = library.favorites.some(saved => foodIdentity(saved) === foodIdentity(item));
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "food-shortcut";
+      button.textContent = `${favorite ? "★ " : ""}${item.nome}`;
+      button.addEventListener("click", () => {
+        if (document.getElementById("modal-food").hidden) openFoodModal();
+        setFoodFormValues(item);
+      });
+      list.appendChild(button);
+    });
+  });
 }
 
 function renderFoodLog(iso) {
   const list = document.getElementById("food-log-list");
   const empty = document.getElementById("food-log-empty");
   const foods = getFoodLogForDate(iso);
+  const summary = document.getElementById("food-log-summary");
   list.innerHTML = "";
   empty.hidden = foods.length > 0;
+  const daily = foods.reduce((total, item) => {
+    const macros = foodTotals(item);
+    Object.keys(total).forEach(key => { total[key] += macros[key]; });
+    return total;
+  }, { kcal: 0, proteina: 0, carboidrato: 0, gordura: 0 });
+  summary.hidden = !foods.length;
+  summary.innerHTML = foods.length ? `<b>${Math.round(daily.kcal)} kcal</b><span>P ${formatMacro(daily.proteina)} g</span><span>C ${formatMacro(daily.carboidrato)} g</span><span>G ${formatMacro(daily.gordura)} g</span>` : "";
   foods.forEach(item => {
     const totals = foodTotals(item);
     const row = document.createElement("div");
@@ -1054,10 +1221,13 @@ function renderFoodLog(iso) {
     const name = document.createElement("span");
     name.className = "food-entry-name";
     name.textContent = item.nome;
+    const meal = document.createElement("small");
+    meal.className = "food-entry-meal";
+    meal.textContent = FOOD_MEAL_LABELS[item.refeicao] || "Outro";
     const info = document.createElement("p");
     info.className = "food-entry-info";
-    info.textContent = `${Number(item.gramas).toLocaleString("pt-BR")} g · ${totals.kcal} kcal · ${String(totals.proteina).replace(".", ",")} g proteína`;
-    main.append(name, info);
+    info.textContent = `${Number(item.gramas).toLocaleString("pt-BR")} g · ${totals.kcal} kcal · P ${formatMacro(totals.proteina)} · C ${formatMacro(totals.carboidrato)} · G ${formatMacro(totals.gordura)}`;
+    main.append(name, meal, info);
     const actions = document.createElement("div");
     actions.className = "food-entry-actions";
     const edit = document.createElement("button");
@@ -1076,36 +1246,43 @@ function renderFoodLog(iso) {
     row.append(main, actions);
     list.appendChild(row);
   });
+  renderFoodShortcuts();
 }
 
 function updateFoodPreview() {
   const grams = Number(document.getElementById("food-grams").value);
   const kcal100 = Number(document.getElementById("food-kcal100").value);
   const protein100 = Number(document.getElementById("food-protein100").value);
+  const carb100 = Number(document.getElementById("food-carb100").value);
+  const fat100 = Number(document.getElementById("food-fat100").value);
   const preview = document.getElementById("food-preview");
-  if (!(grams > 0) || kcal100 < 0 || protein100 < 0 || !document.getElementById("food-kcal100").value || !document.getElementById("food-protein100").value) {
+  if (!(grams > 0) || [kcal100, protein100, carb100, fat100].some(value => value < 0 || !Number.isFinite(value))) {
     preview.textContent = "Informe o peso e os valores nutricionais.";
     return;
   }
   const factor = grams / 100;
-  preview.textContent = `${Math.round(kcal100 * factor)} kcal · ${(protein100 * factor).toFixed(1).replace(".", ",")} g de proteína`;
+  preview.textContent = `${Math.round(kcal100 * factor)} kcal · P ${formatMacro(protein100 * factor)} g · C ${formatMacro(carb100 * factor)} g · G ${formatMacro(fat100 * factor)} g`;
 }
 
 function openFoodModal(item = null) {
   editingFoodId = item ? item.id : null;
   const form = document.getElementById("form-food");
   form.reset();
+  selectedFoodKey = null;
+  selectedFoodSource = "Preenchimento manual";
   document.getElementById("food-preset").value = "";
   document.getElementById("food-manual-values").open = false;
   document.getElementById("food-search-results").innerHTML = "";
-  document.getElementById("food-search-status").textContent = "Pesquise na base Open Food Facts ou informe os valores manualmente.";
+  document.getElementById("food-search-status").textContent = "Digite para pesquisar primeiro na base local. Use Internet para produtos industrializados.";
   document.getElementById("modal-food-title").textContent = item ? "Editar alimento" : "Adicionar alimento";
   if (item) {
-    document.getElementById("food-name").value = item.nome;
-    document.getElementById("food-grams").value = item.gramas;
-    document.getElementById("food-kcal100").value = item.kcal100;
-    document.getElementById("food-protein100").value = item.proteina100;
+    setFoodFormValues(item);
+  } else {
+    document.getElementById("food-meal").value = "outro";
+    document.getElementById("food-carb100").value = 0;
+    document.getElementById("food-fat100").value = 0;
   }
+  renderFoodShortcuts();
   updateFoodPreview();
   document.getElementById("modal-food").hidden = false;
 }
@@ -1118,19 +1295,21 @@ function closeFoodModal() {
 document.getElementById("btn-add-food").addEventListener("click", () => openFoodModal());
 document.getElementById("food-preset").addEventListener("change", (e) => {
   if (e.target.value === "") return;
-  const food = FOOD_PRESETS[Number(e.target.value)];
-  document.getElementById("food-name").value = food.nome;
-  document.getElementById("food-kcal100").value = food.kcal;
-  document.getElementById("food-protein100").value = food.proteina;
-  document.getElementById("food-search-results").innerHTML = "";
-  document.getElementById("food-search-status").textContent = "Valores preenchidos pela tabela TACO. Agora informe somente o peso consumido.";
-  updateFoodPreview();
+  const food = FOOD_PRESETS.find(item => item.key === e.target.value);
+  if (!food) return;
+  setFoodFormValues(food);
+  document.getElementById("food-search-status").textContent = `${food.approximate ? "Valor aproximado" : "Valores da tabela TACO"}. Confira o preparo e informe o peso consumido.`;
+});
+document.getElementById("food-name").addEventListener("input", event => {
+  selectedFoodKey = null;
+  selectedFoodSource = "Preenchimento manual";
+  renderFoodSearchResults(event.target.value);
 });
 document.getElementById("modal-food-cancel").addEventListener("click", closeFoodModal);
 document.getElementById("modal-food").addEventListener("click", (e) => {
   if (e.target.id === "modal-food") closeFoodModal();
 });
-["food-grams", "food-kcal100", "food-protein100"].forEach(id => {
+["food-grams", "food-kcal100", "food-protein100", "food-carb100", "food-fat100"].forEach(id => {
   document.getElementById(id).addEventListener("input", updateFoodPreview);
 });
 
@@ -1156,8 +1335,10 @@ document.getElementById("food-search").addEventListener("click", async () => {
       const n = product.nutriments || {};
       const kcal = Number(n["energy-kcal_100g"] ?? (Number(n["energy-kj_100g"]) / 4.184));
       const protein = Number(n.proteins_100g);
-      return { nome: product.product_name || query, marca: product.brands || "", kcal, protein };
-    }).filter(p => Number.isFinite(p.kcal) && Number.isFinite(p.protein));
+      const carbs = Number(n.carbohydrates_100g);
+      const fat = Number(n.fat_100g);
+      return { key: product.code ? `off_${product.code}` : null, nome: product.product_name || query, marca: product.brands || "", kcal, protein, carbs, fat };
+    }).filter(p => [p.kcal, p.protein, p.carbs, p.fat].every(Number.isFinite));
     if (!products.length) {
       status.textContent = "Nenhum resultado completo. Informe os valores do rótulo manualmente.";
       return;
@@ -1170,12 +1351,14 @@ document.getElementById("food-search").addEventListener("click", async () => {
       const title = document.createElement("span");
       title.textContent = product.marca ? `${product.nome} — ${product.marca}` : product.nome;
       const nutrition = document.createElement("small");
-      nutrition.textContent = `${Math.round(product.kcal)} kcal · ${product.protein.toFixed(1).replace(".", ",")} g proteína por 100 g`;
+      nutrition.textContent = `${Math.round(product.kcal)} kcal · P ${formatMacro(product.protein)} · C ${formatMacro(product.carbs)} · G ${formatMacro(product.fat)} por 100 g`;
       button.append(title, nutrition);
       button.addEventListener("click", () => {
-        document.getElementById("food-name").value = product.marca ? `${product.nome} — ${product.marca}` : product.nome;
-        document.getElementById("food-kcal100").value = product.kcal.toFixed(1);
-        document.getElementById("food-protein100").value = product.protein.toFixed(1);
+        setFoodFormValues({
+          foodKey: product.key, nome: product.marca ? `${product.nome} — ${product.marca}` : product.nome,
+          kcal100: product.kcal, proteina100: product.protein, carboidrato100: product.carbs,
+          gordura100: product.fat, gramas: 100, fonte: "Open Food Facts"
+        });
         results.innerHTML = "";
         status.textContent = "Valores preenchidos pela Open Food Facts. Confira o produto antes de salvar.";
         updateFoodPreview();
@@ -1196,12 +1379,24 @@ document.getElementById("form-food").addEventListener("submit", (e) => {
     gramas: Number(document.getElementById("food-grams").value),
     kcal100: Number(document.getElementById("food-kcal100").value),
     proteina100: Number(document.getElementById("food-protein100").value),
-    fonte: "Open Food Facts / rótulo"
+    carboidrato100: Number(document.getElementById("food-carb100").value),
+    gordura100: Number(document.getElementById("food-fat100").value),
+    refeicao: document.getElementById("food-meal").value,
+    foodKey: selectedFoodKey,
+    fonte: selectedFoodSource
   };
   const foods = getFoodLogForDate(iso);
   const index = foods.findIndex(food => food.id === editingFoodId);
   if (index >= 0) foods[index] = item;
   else foods.push(item);
+  const library = ensureFoodLibrary();
+  const identity = foodIdentity(item);
+  library.recent = [foodSnapshot(item), ...library.recent.filter(saved => foodIdentity(saved) !== identity)].slice(0, 8);
+  if (document.getElementById("food-favorite").checked) {
+    library.favorites = [foodSnapshot(item), ...library.favorites.filter(saved => foodIdentity(saved) !== identity)].slice(0, 20);
+  } else {
+    library.favorites = library.favorites.filter(saved => foodIdentity(saved) !== identity);
+  }
   saveState();
   closeFoodModal();
   renderHoje();
@@ -1370,7 +1565,7 @@ function renderDieta() {
   summary.hidden = !plan.meals.length;
   summary.innerHTML = plan.meals.length ? `
     <div><span>Total planejado</span><b>${Math.round(planTotals.kcal)} kcal</b></div>
-    <div><span>Proteína planejada</span><b>${Math.round(planTotals.proteina)} g</b></div>
+    <div><span>Macronutrientes</span><b>P ${Math.round(planTotals.proteina)} · C ${Math.round(planTotals.carboidrato)} · G ${Math.round(planTotals.gordura)} g</b></div>
     <small>${planTotals.calculated} de ${planTotals.items} item(ns) calculado(s). Valores aproximados; confira marcas e modos de preparo.</small>` : "";
   mealsBox.innerHTML = "";
   plan.meals.forEach((meal, index) => {
@@ -1411,7 +1606,7 @@ function renderDieta() {
       const macros = document.createElement("div");
       macros.className = `diet-item-macros${item.matched ? "" : " pending"}`;
       macros.innerHTML = item.matched
-        ? `${Math.round(item.kcal)} kcal<br>${Number(item.protein).toFixed(1).replace(".", ",")} g prot.`
+        ? `${Math.round(item.kcal)} kcal<br>P ${formatMacro(item.protein)} · C ${formatMacro(item.carbs)} · G ${formatMacro(item.fat)} g`
         : "conferir";
       row.append(copy, macros);
       list.appendChild(row);
@@ -1419,7 +1614,7 @@ function renderDieta() {
     const mealTotals = dietMealTotals(meal);
     const total = document.createElement("div");
     total.className = "diet-meal-total";
-    total.innerHTML = `<span>${mealTotals.calculated}/${mealTotals.items} item(ns) calculado(s)</span><b>${Math.round(mealTotals.kcal)} kcal · ${Math.round(mealTotals.proteina)} g proteína</b>`;
+    total.innerHTML = `<span>${mealTotals.calculated}/${mealTotals.items} item(ns) calculado(s)</span><b>${Math.round(mealTotals.kcal)} kcal · P ${Math.round(mealTotals.proteina)} · C ${Math.round(mealTotals.carboidrato)} · G ${Math.round(mealTotals.gordura)} g</b>`;
     card.append(head, list, total);
     mealsBox.appendChild(card);
   });

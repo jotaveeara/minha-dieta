@@ -1,0 +1,28 @@
+ETAPA 6 — ALIMENTAÇÃO INTELIGENTE
+
+O que foi incluído:
+- 53 alimentos na base local, separados por categoria e preparo;
+- cálculo de calorias, proteínas, carboidratos e gorduras;
+- pesquisa local que funciona sem internet;
+- pesquisa na Open Food Facts para produtos industrializados;
+- favoritos e alimentos recentes para adicionar novamente;
+- refeição associada a cada alimento registrado;
+- dieta importada recalculada com os quatro macronutrientes;
+- compatibilidade com registros antigos que ainda não têm carboidratos e gorduras.
+
+COMO PUBLICAR NO GITHUB
+
+1. Abra o repositório minha-dieta.
+2. Clique em Add file e depois Upload files.
+3. Envie TODOS os arquivos contidos na pasta deste pacote.
+4. Confirme a substituição dos arquivos existentes.
+5. Faça o commit diretamente na branch main.
+6. Aguarde o indicador verde do GitHub Pages.
+7. No celular, feche o aplicativo e abra novamente. Se ainda aparecer a versão antiga, remova o atalho instalado e instale novamente pelo navegador.
+
+Não é necessário executar novo código SQL no Supabase para esta etapa.
+
+Fontes nutricionais:
+- Base local principal: TACO/NEPA-Unicamp.
+- Produtos industrializados: Open Food Facts.
+- Valores marcados como estimativa devem ser conferidos no rótulo.

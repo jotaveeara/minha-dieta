@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 
@@ -249,6 +249,11 @@
         <h2 class="section-title">Alimentos de hoje</h2>
         <button class="food-add-btn" id="btn-add-food">+ Adicionar</button>
       </div>
+      <div class="food-quick-add" id="food-quick-add" hidden>
+        <span>Adicionar novamente</span>
+        <div class="food-shortcut-list" id="food-quick-list"></div>
+      </div>
+      <div class="food-log-summary" id="food-log-summary" hidden></div>
       <div class="food-log-list" id="food-log-list"></div>
       <p class="food-log-empty" id="food-log-empty">Nenhum alimento registrado.</p>
     </section>
@@ -552,7 +557,7 @@
       <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
     </section>
 
-    <p class="app-version">Minha Dieta · v1.4</p>
+    <p class="app-version">Minha Dieta · v1.5</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->
@@ -722,18 +727,33 @@
     <div class="modal-handle"></div>
     <h3 id="modal-food-title">Adicionar alimento</h3>
     <form id="form-food" class="food-form">
-      <label>Tabela rápida (TACO)
+      <div class="food-modal-shortcuts" id="food-modal-shortcuts" hidden>
+        <span>Favoritos e recentes</span>
+        <div class="food-shortcut-list" id="food-modal-shortcut-list"></div>
+      </div>
+      <label>Base local organizada por categoria
         <select id="food-preset">
-          <option value="">Selecione um alimento comum</option>
+          <option value="">Selecione um alimento</option>
+        </select>
+      </label>
+      <label>Refeição
+        <select id="food-meal">
+          <option value="cafe">Café da manhã</option>
+          <option value="lanche_manha">Lanche da manhã</option>
+          <option value="almoco">Almoço</option>
+          <option value="lanche_tarde">Lanche da tarde</option>
+          <option value="jantar">Jantar</option>
+          <option value="ceia">Ceia</option>
+          <option value="outro">Outro</option>
         </select>
       </label>
       <label>Alimento
         <div class="food-search-row">
           <input type="text" name="nome" id="food-name" placeholder="Ex.: arroz, banana, iogurte" required>
-          <button type="button" class="food-search-btn" id="food-search">Buscar</button>
+          <button type="button" class="food-search-btn" id="food-search">Internet</button>
         </div>
       </label>
-      <p class="food-search-status" id="food-search-status">Pesquise na base Open Food Facts ou informe os valores manualmente.</p>
+      <p class="food-search-status" id="food-search-status">Digite para pesquisar primeiro na base local. Use Internet para produtos industrializados.</p>
       <div class="food-search-results" id="food-search-results"></div>
       <label>Peso consumido (g)
         <input type="number" name="gramas" id="food-grams" min="0.1" step="0.1" required>
@@ -747,8 +767,15 @@
           <label>Proteína por 100 g
             <input type="number" name="proteina100" id="food-protein100" min="0" step="0.1" required>
           </label>
+          <label>Carboidratos por 100 g
+            <input type="number" name="carboidrato100" id="food-carb100" min="0" step="0.1" required>
+          </label>
+          <label>Gorduras por 100 g
+            <input type="number" name="gordura100" id="food-fat100" min="0" step="0.1" required>
+          </label>
         </div>
       </details>
+      <label class="food-favorite-check"><input type="checkbox" id="food-favorite"> Manter este alimento nos favoritos</label>
       <div class="food-preview" id="food-preview">Informe o peso e os valores nutricionais.</div>
       <button class="btn-primary" type="submit">Salvar alimento</button>
       <button class="btn-secondary" type="button" id="modal-food-cancel">Cancelar</button>
@@ -761,8 +788,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=27"></script>
-<script src="script.js?v=27"></script>
-<script src="auth.js?v=27"></script>
+<script src="supabase-config.js?v=28"></script>
+<script src="food-data.js?v=28"></script>
+<script src="script.js?v=28"></script>
+<script src="auth.js?v=28"></script>
 </body>
 </html>

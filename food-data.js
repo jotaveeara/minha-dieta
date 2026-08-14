@@ -1,0 +1,65 @@
+"use strict";
+
+// Valores por 100 g de parte comestível. A base principal é a TACO/NEPA-Unicamp,
+// 4ª edição. Itens marcados como estimativa devem ser conferidos no rótulo.
+window.FOOD_CATALOG = [
+  { key: "arroz_branco_cozido", nome: "Arroz branco cozido", categoria: "Cereais", preparo: "Cozido", kcal: 128, proteina: 2.5, carboidrato: 28.1, gordura: 0.2, aliases: ["arroz branco", "arroz tipo 1", "arroz"] },
+  { key: "arroz_integral_cozido", nome: "Arroz integral cozido", categoria: "Cereais", preparo: "Cozido", kcal: 124, proteina: 2.6, carboidrato: 25.8, gordura: 1.0, aliases: ["arroz integral"] },
+  { key: "aveia_flocos_crua", nome: "Aveia em flocos crua", categoria: "Cereais", preparo: "Cru", kcal: 394, proteina: 13.9, carboidrato: 66.6, gordura: 8.5, aliases: ["aveia em flocos", "aveia"] },
+  { key: "pao_frances", nome: "Pão francês", categoria: "Cereais", preparo: "Preparado", kcal: 300, proteina: 8.0, carboidrato: 58.6, gordura: 3.1, aliases: ["pao frances", "paes franceses", "pao"], unitGrams: 50 },
+  { key: "pao_integral", nome: "Pão de forma integral", categoria: "Cereais", preparo: "Preparado", kcal: 253, proteina: 9.4, carboidrato: 49.9, gordura: 3.7, aliases: ["pao de forma integral", "pao integral", "pao de forma"], unitGrams: 25 },
+  { key: "polenta", nome: "Polenta pré-cozida", categoria: "Cereais", preparo: "Cozido", kcal: 103, proteina: 2.3, carboidrato: 23.3, gordura: 0.3, aliases: ["polenta"] },
+  { key: "milho_conserva", nome: "Milho verde em conserva drenado", categoria: "Cereais", preparo: "Preparado", kcal: 98, proteina: 3.2, carboidrato: 17.1, gordura: 2.4, aliases: ["milho em conserva", "milho verde", "milho"] },
+  { key: "macarrao_cozido", nome: "Massa de trigo cozida", categoria: "Cereais", preparo: "Cozido", kcal: 164, proteina: 5.8, carboidrato: 32.5, gordura: 1.2, aliases: ["macarrao cozido", "massa cozida", "macarrao"] },
+
+  { key: "feijao_carioca_cozido", nome: "Feijão carioca cozido", categoria: "Leguminosas", preparo: "Cozido", kcal: 76, proteina: 4.8, carboidrato: 13.6, gordura: 0.5, aliases: ["feijao carioca", "feijao"] },
+  { key: "feijao_preto_cozido", nome: "Feijão preto cozido", categoria: "Leguminosas", preparo: "Cozido", kcal: 77, proteina: 4.5, carboidrato: 14.0, gordura: 0.5, aliases: ["feijao preto"] },
+  { key: "feijao_fradinho_cozido", nome: "Feijão-fradinho cozido", categoria: "Leguminosas", preparo: "Cozido", kcal: 78, proteina: 5.1, carboidrato: 13.5, gordura: 0.6, aliases: ["feijao fradinho"] },
+  { key: "lentilha_cozida", nome: "Lentilha cozida", categoria: "Leguminosas", preparo: "Cozido", kcal: 93, proteina: 6.3, carboidrato: 16.3, gordura: 0.5, aliases: ["lentilha"] },
+  { key: "ervilha_conserva", nome: "Ervilha em conserva drenada", categoria: "Leguminosas", preparo: "Preparado", kcal: 74, proteina: 4.6, carboidrato: 13.4, gordura: 0.4, aliases: ["ervilha em conserva", "ervilha"] },
+
+  { key: "frango_peito_grelhado", nome: "Peito de frango sem pele grelhado", categoria: "Proteínas", preparo: "Grelhado", kcal: 159, proteina: 32.0, carboidrato: 0, gordura: 2.5, aliases: ["peito de frango grelhado", "peito de frango", "frango grelhado", "frango"] },
+  { key: "frango_peito_cozido", nome: "Peito de frango sem pele cozido", categoria: "Proteínas", preparo: "Cozido", kcal: 163, proteina: 31.5, carboidrato: 0, gordura: 3.2, aliases: ["peito de frango cozido", "frango cozido"] },
+  { key: "frango_sobrecoxa_assada", nome: "Sobrecoxa de frango sem pele assada", categoria: "Proteínas", preparo: "Assado", kcal: 233, proteina: 29.2, carboidrato: 0, gordura: 12.0, aliases: ["sobrecoxa assada", "sobrecoxa de frango"] },
+  { key: "patinho_grelhado", nome: "Patinho sem gordura grelhado", categoria: "Proteínas", preparo: "Grelhado", kcal: 219, proteina: 35.9, carboidrato: 0, gordura: 7.3, aliases: ["patinho grelhado", "patinho"] },
+  { key: "acem_moido_cozido", nome: "Acém moído cozido", categoria: "Proteínas", preparo: "Cozido", kcal: 212, proteina: 26.7, carboidrato: 0, gordura: 10.9, aliases: ["acem moido", "carne moida", "carne bovina moida"] },
+  { key: "hamburguer_grelhado", nome: "Hambúrguer bovino grelhado", categoria: "Proteínas", preparo: "Grelhado", kcal: 210, proteina: 13.2, carboidrato: 11.3, gordura: 12.4, aliases: ["hamburguer bovino", "hamburguer"] },
+  { key: "lombo_assado", nome: "Lombo suíno assado", categoria: "Proteínas", preparo: "Assado", kcal: 210, proteina: 35.7, carboidrato: 0, gordura: 6.4, aliases: ["lombo suino", "lombo de porco", "lombo"] },
+  { key: "tilapia_grelhada", nome: "Tilápia grelhada", categoria: "Proteínas", preparo: "Grelhado", kcal: 128, proteina: 26.0, carboidrato: 0, gordura: 2.7, aliases: ["tilapia grelhada", "tilapia"], approximate: true },
+  { key: "atum_oleo", nome: "Atum em conserva com óleo", categoria: "Proteínas", preparo: "Preparado", kcal: 166, proteina: 26.2, carboidrato: 0, gordura: 6.0, aliases: ["atum em conserva", "atum"] },
+  { key: "ovo_cozido", nome: "Ovo de galinha cozido", categoria: "Proteínas", preparo: "Cozido", kcal: 146, proteina: 13.3, carboidrato: 0.6, gordura: 9.5, aliases: ["ovos inteiros", "ovo inteiro", "ovos cozidos", "ovo cozido", "ovos", "ovo"], unitGrams: 50 },
+  { key: "ovo_frito", nome: "Ovo de galinha frito", categoria: "Proteínas", preparo: "Frito", kcal: 240, proteina: 15.6, carboidrato: 1.2, gordura: 18.6, aliases: ["ovos fritos", "ovo frito"], unitGrams: 50 },
+
+  { key: "iogurte_natural", nome: "Iogurte natural integral", categoria: "Laticínios", preparo: "Preparado", kcal: 51, proteina: 4.1, carboidrato: 1.9, gordura: 3.0, aliases: ["iogurte natural", "iogurte"] },
+  { key: "iogurte_desnatado", nome: "Iogurte natural desnatado", categoria: "Laticínios", preparo: "Preparado", kcal: 41, proteina: 3.8, carboidrato: 5.8, gordura: 0.3, aliases: ["iogurte desnatado"] },
+  { key: "leite_integral", nome: "Leite integral", categoria: "Laticínios", preparo: "Preparado", kcal: 61, proteina: 2.9, carboidrato: 4.3, gordura: 3.3, aliases: ["leite integral", "leite"], approximate: true },
+  { key: "queijo_minas", nome: "Queijo minas frescal", categoria: "Laticínios", preparo: "Preparado", kcal: 264, proteina: 17.4, carboidrato: 3.2, gordura: 20.2, aliases: ["queijo minas frescal", "queijo minas"] },
+  { key: "mucarela", nome: "Queijo muçarela", categoria: "Laticínios", preparo: "Preparado", kcal: 330, proteina: 22.6, carboidrato: 3.0, gordura: 25.2, aliases: ["queijo mucarela", "mucarela", "mozarela"], unitGrams: 20 },
+  { key: "ricota", nome: "Queijo ricota", categoria: "Laticínios", preparo: "Preparado", kcal: 140, proteina: 12.6, carboidrato: 3.8, gordura: 8.1, aliases: ["queijo ricota", "ricota"] },
+
+  { key: "abacate_cru", nome: "Abacate cru", categoria: "Frutas", preparo: "Cru", kcal: 96, proteina: 1.2, carboidrato: 6.0, gordura: 8.4, aliases: ["abacate"] },
+  { key: "abacaxi_cru", nome: "Abacaxi cru", categoria: "Frutas", preparo: "Cru", kcal: 48, proteina: 0.9, carboidrato: 12.3, gordura: 0.1, aliases: ["abacaxi"] },
+  { key: "banana_prata", nome: "Banana-prata crua", categoria: "Frutas", preparo: "Cru", kcal: 98, proteina: 1.3, carboidrato: 26.0, gordura: 0.1, aliases: ["banana prata", "banana"], unitGrams: 80 },
+  { key: "banana_nanica", nome: "Banana-nanica crua", categoria: "Frutas", preparo: "Cru", kcal: 92, proteina: 1.4, carboidrato: 23.8, gordura: 0.1, aliases: ["banana nanica"], unitGrams: 90 },
+  { key: "maca_fuji", nome: "Maçã Fuji com casca", categoria: "Frutas", preparo: "Cru", kcal: 56, proteina: 0.3, carboidrato: 15.2, gordura: 0, aliases: ["maca fuji", "maca"], unitGrams: 130 },
+  { key: "mamao_formosa", nome: "Mamão Formosa cru", categoria: "Frutas", preparo: "Cru", kcal: 45, proteina: 0.8, carboidrato: 11.6, gordura: 0.1, aliases: ["mamao formosa", "mamao"] },
+  { key: "laranja_pera", nome: "Laranja-pera crua", categoria: "Frutas", preparo: "Cru", kcal: 37, proteina: 1.0, carboidrato: 8.9, gordura: 0.1, aliases: ["laranja pera", "laranja"], unitGrams: 140 },
+  { key: "morango_cru", nome: "Morango cru", categoria: "Frutas", preparo: "Cru", kcal: 30, proteina: 0.9, carboidrato: 6.8, gordura: 0.3, aliases: ["morangos", "morango"], unitGrams: 12 },
+  { key: "manga_palmer", nome: "Manga Palmer crua", categoria: "Frutas", preparo: "Cru", kcal: 72, proteina: 0.4, carboidrato: 19.4, gordura: 0.2, aliases: ["manga palmer", "manga"] },
+
+  { key: "batata_doce_cozida", nome: "Batata-doce cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 77, proteina: 0.6, carboidrato: 18.4, gordura: 0.1, aliases: ["batata doce"] },
+  { key: "batata_inglesa_cozida", nome: "Batata inglesa cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 52, proteina: 1.2, carboidrato: 11.9, gordura: 0, aliases: ["batata inglesa", "batata cozida"] },
+  { key: "mandioca_cozida", nome: "Mandioca cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 125, proteina: 0.6, carboidrato: 30.1, gordura: 0.3, aliases: ["mandioca", "aipim", "macaxeira"] },
+  { key: "abobora_cabotia", nome: "Abóbora cabotiá cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 48, proteina: 1.4, carboidrato: 10.8, gordura: 0.7, aliases: ["abobora cabotia", "abobora"] },
+  { key: "brocolis_cozido", nome: "Brócolis cozido", categoria: "Hortaliças", preparo: "Cozido", kcal: 25, proteina: 2.1, carboidrato: 4.4, gordura: 0.5, aliases: ["brocolis"] },
+  { key: "cenoura_cozida", nome: "Cenoura cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 30, proteina: 0.8, carboidrato: 6.7, gordura: 0.2, aliases: ["cenoura"] },
+  { key: "tomate_cru", nome: "Tomate cru", categoria: "Hortaliças", preparo: "Cru", kcal: 15, proteina: 1.1, carboidrato: 3.1, gordura: 0.2, aliases: ["tomates", "tomate"] },
+  { key: "alface_crespa", nome: "Alface crespa crua", categoria: "Hortaliças", preparo: "Cru", kcal: 11, proteina: 1.3, carboidrato: 1.7, gordura: 0.2, aliases: ["alface crespa", "alface"] },
+  { key: "abobrinha_cozida", nome: "Abobrinha italiana cozida", categoria: "Hortaliças", preparo: "Cozido", kcal: 15, proteina: 1.1, carboidrato: 3.0, gordura: 0.2, aliases: ["abobrinha italiana", "abobrinha"] },
+
+  { key: "amendoim_torrado", nome: "Amendoim torrado salgado", categoria: "Outros", preparo: "Preparado", kcal: 606, proteina: 22.5, carboidrato: 18.7, gordura: 54.0, aliases: ["amendoim torrado", "amendoim"] },
+  { key: "mel", nome: "Mel de abelha", categoria: "Outros", preparo: "Preparado", kcal: 309, proteina: 0, carboidrato: 84.0, gordura: 0, aliases: ["mel de abelha", "mel"], spoonGrams: 15 },
+  { key: "acucar_refinado", nome: "Açúcar refinado", categoria: "Outros", preparo: "Preparado", kcal: 387, proteina: 0.3, carboidrato: 99.5, gordura: 0, aliases: ["acucar refinado", "acucar"], spoonGrams: 12 },
+  { key: "cafe_sem_acucar", nome: "Café sem açúcar", categoria: "Bebidas", preparo: "Preparado", kcal: 9, proteina: 0.7, carboidrato: 1.5, gordura: 0.1, aliases: ["cafe sem acucar", "cafe"], approximate: true },
+  { key: "whey", nome: "Whey protein", categoria: "Suplementos", preparo: "Rótulo", kcal: 400, proteina: 80, carboidrato: 8, gordura: 6, aliases: ["whey protein", "whey"], scoopGrams: 30, approximate: true }
+];

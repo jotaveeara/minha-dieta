@@ -748,10 +748,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--amber); out
   border-radius: 10px; padding: 8px 11px; font-size: 12.5px; font-weight: 750;
 }
 .food-log-list { display: flex; flex-direction: column; gap: 8px; }
+.food-log-summary { display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 6px; align-items: center; margin-bottom: 10px; padding: 11px 12px; border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface-2); }
+.food-log-summary b { color: var(--text); font-size: 13px; }
+.food-log-summary span { color: var(--text-muted); font-size: 11.5px; text-align: center; }
+.food-quick-add, .food-modal-shortcuts { margin-bottom: 10px; }
+.food-quick-add > span, .food-modal-shortcuts > span { display: block; margin-bottom: 7px; color: var(--text-faint); font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+.food-shortcut-list { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+.food-shortcut { flex: 0 0 auto; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid rgba(var(--amber-rgb),.32); background: var(--amber-dim); color: var(--amber); border-radius: 999px; padding: 7px 10px; font-size: 11.5px; font-weight: 700; }
 .food-log-empty { color: var(--text-faint); font-size: 13px; padding: 14px; border: 1px dashed var(--surface-border); border-radius: var(--radius-md); }
 .food-entry { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 13px; border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface); }
 .food-entry-main { min-width: 0; }
 .food-entry-name { display: block; font-size: 14px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food-entry-meal { display: block; color: var(--amber); font-size: 10.5px; font-weight: 700; margin-top: 2px; }
 .food-entry-info { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
 .food-entry-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .food-entry-actions button { border: 1px solid var(--surface-border); background: var(--surface-2); color: var(--text-muted); border-radius: 8px; padding: 6px 8px; font-size: 11px; }
@@ -768,7 +776,17 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--amber); out
 .food-manual-values { border: 1px solid var(--surface-border); border-radius: 10px; padding: 10px 11px; }
 .food-manual-values summary { color: var(--text-muted); font-size: 12px; font-weight: 700; cursor: pointer; }
 .food-manual-values[open] summary { margin-bottom: 10px; }
+.food-favorite-check { flex-direction: row !important; align-items: center; gap: 8px !important; color: var(--text) !important; }
+.food-favorite-check input { width: 18px; height: 18px; accent-color: var(--amber); }
 .food-preview { padding: 11px 12px; border-radius: 10px; background: var(--surface-2); color: var(--text-muted); font-size: 13px; }
+
+@media (max-width: 380px) {
+  .food-entry { align-items: flex-start; flex-direction: column; }
+  .food-entry-actions { width: 100%; }
+  .food-entry-actions button { flex: 1; }
+  .food-log-summary { grid-template-columns: 1fr 1fr; }
+  .food-log-summary span { text-align: left; }
+}
 
 /* ============= TOAST ============= */
 .toast {

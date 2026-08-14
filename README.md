@@ -1,5 +1,15 @@
 # Minha Dieta
 
+## Etapa 6 — alimentação inteligente
+
+- catálogo local por categoria e modo de preparo, disponível mesmo sem internet;
+- cálculo automático de calorias, proteínas, carboidratos e gorduras;
+- alimentos favoritos e recentes para repetir registros rapidamente;
+- busca externa na Open Food Facts para produtos industrializados;
+- plano alimentar importado recalculado com os quatro macronutrientes.
+
+Os valores da base local usam principalmente a TACO/NEPA-Unicamp. Itens marcados como estimativa e produtos industrializados devem ser conferidos no rótulo.
+
 Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável no celular.
 
 ## Arquivos
