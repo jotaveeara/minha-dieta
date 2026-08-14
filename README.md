@@ -31,7 +31,7 @@ Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável 
 - Os números de calorias/proteína são estimativas com base na TACO/NEPA-Unicamp e nos valores informados. Marcas, porções e preparo podem alterar o resultado; não é prescrição médica.
 - Os planos de treino-base são sugestões iniciais editáveis. Dor, tontura, lesões ou limitações exigem interrupção e avaliação de profissional habilitado.
 - A leitura de PDF utiliza fluxo compatível com Safari/iPhone; arquivos antigos podem ser processados novamente pelo botão **Reanalisar**.
-- Cada usuário pode escolher entre as paletas Âmbar, Oceano e Esmeralda.
+- Cada usuário pode escolher entre as paletas Preto + roxo, Espresso + cobre e Carbono + azul elétrico.
 - A foto de perfil é comprimida no aparelho e salva no bucket privado `profile-avatars`, acessível somente pelo proprietário.
 
 ## Testando localmente antes de publicar

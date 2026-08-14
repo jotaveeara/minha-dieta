@@ -64,9 +64,9 @@ function isoFromDate(d) {
 let state = loadState();
 
 const APP_THEMES = {
-  amber: { label: "Âmbar", themeColor: "#0e1013" },
-  ocean: { label: "Oceano", themeColor: "#09131d" },
-  emerald: { label: "Esmeralda", themeColor: "#091611" }
+  amber: { label: "Preto + roxo", themeColor: "#0c0a12" },
+  ocean: { label: "Espresso + cobre", themeColor: "#100b08" },
+  emerald: { label: "Carbono + azul elétrico", themeColor: "#080b10" }
 };
 
 function applyAppearanceTheme(theme = state.appearance?.theme || "amber") {
@@ -2038,11 +2038,15 @@ function drawWeightChart(log) {
     return { x, y, entry: e };
   });
   weightChartPoints = pts;
+  const themeStyles = getComputedStyle(document.documentElement);
+  const chartAccent = themeStyles.getPropertyValue("--amber").trim() || "#a879ff";
+  const chartAccentRgb = themeStyles.getPropertyValue("--amber-rgb").trim() || "168, 121, 255";
+  const chartBackground = themeStyles.getPropertyValue("--bg-0").trim() || "#0c0a12";
 
   // linha
   ctx.beginPath();
   pts.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
-  ctx.strokeStyle = "#e8a33d";
+  ctx.strokeStyle = chartAccent;
   ctx.lineWidth = 2.5;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -2052,17 +2056,17 @@ function drawWeightChart(log) {
   ctx.lineTo(pts[pts.length - 1].x, pad.t + h);
   ctx.lineTo(pts[0].x, pad.t + h);
   ctx.closePath();
-  ctx.fillStyle = "rgba(232,163,61,0.10)";
+  ctx.fillStyle = `rgba(${chartAccentRgb},0.10)`;
   ctx.fill();
 
   // pontos
   pts.forEach(p => {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#0b0d0f";
+    ctx.fillStyle = chartBackground;
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#e8a33d";
+    ctx.strokeStyle = chartAccent;
     ctx.stroke();
   });
 }
