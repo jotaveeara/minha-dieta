@@ -1,18 +1,20 @@
-# Rotina — João
+# Minha Dieta
 
-App pessoal de dieta, treino e evolução física. PWA instalável no iPhone.
+Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável no celular.
 
 ## Arquivos
 - `index.html` — estrutura das telas
 - `style.css` — visual (modo escuro, cards, timeline)
-- `script.js` — toda a lógica (rotina por dia da semana, checklist, água, substituições, peso, fotos, backup)
+- `script.js` — rotina, dieta editável, cálculos nutricionais, planos de treino-base, checklist, água e evolução
+- `auth.js` — autenticação, sincronização e importação de PDF/DOCX
+- `supabase-config.js` — endereço público e chave publicável do projeto Supabase
 - `manifest.json` — configuração da instalação como app
 - `sw.js` — service worker, permite abrir offline depois da 1ª visita
 - `icon-192.png` e `icon-512.png` — ícones usados no manifest e na tela inicial
 
 ## Como publicar no GitHub Pages
-1. Crie um repositório novo no GitHub (ex: `rotina-joao`).
-2. Envie todos os arquivos desta pasta para a raiz do repositório.
+1. Use o repositório `minha-dieta` já criado.
+2. Envie todos os arquivos desta pasta para a raiz do repositório, substituindo os anteriores.
 3. No repositório, vá em **Settings → Pages**, escolha a branch `main` e a pasta `/root`, salve.
 4. Aguarde alguns minutos — o GitHub mostrará o link, algo como `https://seu-usuario.github.io/rotina-joao/`.
 
@@ -23,10 +25,14 @@ App pessoal de dieta, treino e evolução física. PWA instalável no iPhone.
 4. Pronto — o app abre em tela cheia, com ícone próprio, e funciona offline depois da primeira visita.
 
 ## Sobre os dados
-- Tudo fica salvo neste aparelho, no navegador (localStorage + IndexedDB para fotos).
+- Os dados do usuário são salvos localmente e sincronizados com a conta pelo Supabase.
 - Use o botão **Exportar dados (JSON)** em Perfil regularmente — é o backup que te permite recuperar tudo caso troque de celular ou limpe os dados do Safari.
 - Fotos de progresso ficam só neste aparelho (não entram no backup, por serem grandes).
-- Os números de calorias/proteína são estimativas de referência, ajustáveis em Perfil — não é prescrição médica.
+- Os números de calorias/proteína são estimativas com base na TACO/NEPA-Unicamp e nos valores informados. Marcas, porções e preparo podem alterar o resultado; não é prescrição médica.
+- Os planos de treino-base são sugestões iniciais editáveis. Dor, tontura, lesões ou limitações exigem interrupção e avaliação de profissional habilitado.
+- A leitura de PDF utiliza fluxo compatível com Safari/iPhone; arquivos antigos podem ser processados novamente pelo botão **Reanalisar**.
+- Cada usuário pode escolher entre as paletas Âmbar, Oceano e Esmeralda.
+- A foto de perfil é comprimida no aparelho e salva no bucket privado `profile-avatars`, acessível somente pelo proprietário.
 
 ## Testando localmente antes de publicar
 Como o app usa `fetch`/service worker, alguns navegadores bloqueiam esses recursos se você simplesmente abrir o `index.html` direto do disco (`file://`). Para testar localmente:
