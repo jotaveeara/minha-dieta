@@ -531,6 +531,131 @@ function calcDayTotals(dateObj) {
   };
 }
 
+/* ---------------------------------------------------------
+   7A. GAMIFICAÇÃO E DESEMPENHO
+--------------------------------------------------------- */
+const GAMIFICATION_POINTS = { water: 20, meal: 5, mealDailyCap: 20, workout: 30, evolution: 10 };
+const GAMIFICATION_LEVEL_SIZE = 300;
+
+function isValidISODate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function dateFromISO(iso) {
+  return new Date(`${iso}T12:00:00`);
+}
+
+function completedMealsForDate(iso) {
+  const completion = state.completions?.[iso] || {};
+  return Object.entries(completion).filter(([key, done]) => done && /meal|refei[cç][aã]o/i.test(key)).length;
+}
+
+function firstEvolutionDateInWeek(iso) {
+  const week = getISOWeekKey(dateFromISO(iso));
+  return (state.weightLog || [])
+    .map(entry => entry.data)
+    .filter(date => isValidISODate(date) && getISOWeekKey(dateFromISO(date)) === week)
+    .sort()[0] || null;
+}
+
+function gamificationPointsForDate(iso) {
+  const completion = state.completions?.[iso] || {};
+  const waterPoints = Number(state.water?.[iso] || 0) >= Number(state.metas?.aguaMetaMl || 3000) ? GAMIFICATION_POINTS.water : 0;
+  const completedMeals = completedMealsForDate(iso);
+  const mealPoints = Math.min(GAMIFICATION_POINTS.mealDailyCap, completedMeals * GAMIFICATION_POINTS.meal);
+  const workoutPoints = completion.treino ? GAMIFICATION_POINTS.workout : 0;
+  const evolutionPoints = firstEvolutionDateInWeek(iso) === iso ? GAMIFICATION_POINTS.evolution : 0;
+  return {
+    total: waterPoints + mealPoints + workoutPoints + evolutionPoints,
+    core: waterPoints + mealPoints + workoutPoints,
+    waterPoints, mealPoints, workoutPoints, evolutionPoints, completedMeals
+  };
+}
+
+function gamificationDateKeys() {
+  const keys = new Set([
+    ...Object.keys(state.water || {}),
+    ...Object.keys(state.completions || {}),
+    ...(state.weightLog || []).map(entry => entry.data)
+  ]);
+  return [...keys].filter(isValidISODate).sort();
+}
+
+function gamificationSummary(referenceDate = new Date()) {
+  const referenceISO = isoFromDate(referenceDate);
+  const weekKey = getISOWeekKey(referenceDate);
+  const dateKeys = gamificationDateKeys();
+  const breakdowns = dateKeys.map(iso => ({ iso, ...gamificationPointsForDate(iso) }));
+  const totalPoints = breakdowns.reduce((sum, day) => sum + day.total, 0);
+  const weekPoints = breakdowns.filter(day => getISOWeekKey(dateFromISO(day.iso)) === weekKey).reduce((sum, day) => sum + day.total, 0);
+  const today = gamificationPointsForDate(referenceISO);
+  const hydrationDays = breakdowns.filter(day => day.waterPoints > 0).length;
+  const workoutDays = breakdowns.filter(day => day.workoutPoints > 0).length;
+  const nutritionDays = breakdowns.filter(day => day.mealPoints >= GAMIFICATION_POINTS.mealDailyCap).length;
+  const evolutionWeeks = breakdowns.filter(day => day.evolutionPoints > 0).length;
+
+  let cursor = new Date(`${referenceISO}T12:00:00`);
+  if (gamificationPointsForDate(referenceISO).core < 20) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  for (let index = 0; index < 365; index++) {
+    const iso = isoFromDate(cursor);
+    if (gamificationPointsForDate(iso).core < 20) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  const level = Math.floor(totalPoints / GAMIFICATION_LEVEL_SIZE) + 1;
+  const levelPoints = totalPoints % GAMIFICATION_LEVEL_SIZE;
+  const achievements = [
+    { id: "start", label: "Primeiros pontos", unlocked: totalPoints >= 20 },
+    { id: "water", label: "7 metas de água", unlocked: hydrationDays >= 7 },
+    { id: "workout", label: "5 treinos concluídos", unlocked: workoutDays >= 5 },
+    { id: "nutrition", label: "5 dias de refeições", unlocked: nutritionDays >= 5 },
+    { id: "evolution", label: "4 semanas de evolução", unlocked: evolutionWeeks >= 4 },
+    { id: "weekly", label: "200 pontos na semana", unlocked: weekPoints >= 200 }
+  ];
+  return { referenceISO, totalPoints, weekPoints, today, streak, level, levelPoints, achievements, hydrationDays, workoutDays, nutritionDays, evolutionWeeks };
+}
+
+function gamificationInsight(summary) {
+  const water = Number(state.water?.[summary.referenceISO] || 0);
+  const waterGoal = Number(state.metas?.aguaMetaMl || 3000);
+  if (water < waterGoal) {
+    const remaining = Math.max(0, waterGoal - water);
+    return `Faltam ${(remaining / 1000).toFixed(2).replace(".", ",")} L para atingir a meta de água e ganhar 20 pontos.`;
+  }
+  const trainingToday = (state.customRoutine?.trainingDays || []).map(Number).includes(dateFromISO(summary.referenceISO).getDay());
+  if (trainingToday && !summary.today.workoutPoints) return "O treino de hoje ainda não foi concluído. Ao marcar, você ganha 30 pontos.";
+  if (summary.today.mealPoints < GAMIFICATION_POINTS.mealDailyCap) {
+    const remainingMeals = Math.ceil((GAMIFICATION_POINTS.mealDailyCap - summary.today.mealPoints) / GAMIFICATION_POINTS.meal);
+    return `Marque mais ${remainingMeals} refeição(ões) concluída(s) para atingir o limite diário de pontos da alimentação.`;
+  }
+  return "As principais metas de hoje foram registradas. Continue mantendo a consistência durante a semana.";
+}
+
+function renderGamification() {
+  const summary = gamificationSummary(new Date());
+  document.getElementById("performance-level").textContent = `Nível ${summary.level}`;
+  document.getElementById("performance-total").textContent = `${summary.totalPoints} pontos`;
+  document.getElementById("performance-level-fill").style.width = `${summary.levelPoints / GAMIFICATION_LEVEL_SIZE * 100}%`;
+  document.getElementById("performance-next").textContent = `Faltam ${GAMIFICATION_LEVEL_SIZE - summary.levelPoints} pontos para o próximo nível.`;
+  document.getElementById("performance-week").textContent = summary.weekPoints;
+  document.getElementById("performance-streak").textContent = `${summary.streak} ${summary.streak === 1 ? "dia" : "dias"}`;
+  document.getElementById("performance-today").textContent = summary.today.total;
+  document.getElementById("performance-insight").textContent = gamificationInsight(summary);
+  const achievements = document.getElementById("achievement-list");
+  achievements.innerHTML = "";
+  summary.achievements.forEach(achievement => {
+    const chip = document.createElement("span");
+    chip.className = `achievement-chip${achievement.unlocked ? "" : " locked"}`;
+    chip.textContent = `${achievement.unlocked ? "Conquista: " : "Bloqueado: "}${achievement.label}`;
+    achievements.appendChild(chip);
+  });
+  return summary;
+}
+
+window.gamificationSummary = gamificationSummary;
+
 function getWaterMl(iso) { return state.water[iso] || 0; }
 function addWaterMl(iso, ml) {
   state.water[iso] = Math.max(0, getWaterMl(iso) + ml);
@@ -659,6 +784,9 @@ function renderHoje() {
 
   // timeline
   renderTimeline(plan, iso);
+
+  // pontos, nível, sequência e recomendações da semana
+  renderGamification();
 }
 
 function renderChecklist(plan, iso) {

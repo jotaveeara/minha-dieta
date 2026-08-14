@@ -28,6 +28,20 @@ A aba Treino possui a opção **Excluir plano de treino**. Após confirmação, 
 
 O plano-base é apenas uma ferramenta de organização geral. Situações clínicas, gestação, alergias graves, uso de medicamentos e necessidades específicas exigem avaliação profissional.
 
+## Etapa 8 — gamificação e desempenho
+
+- 20 pontos ao atingir a meta diária de água;
+- 5 pontos por refeição concluída, limitados a 20 por dia;
+- 30 pontos por treino concluído;
+- 10 pontos pelo primeiro registro de evolução da semana;
+- nível a cada 300 pontos;
+- pontuação de hoje, da semana e total da conta;
+- sequência de dias com pelo menos uma meta principal concluída;
+- conquistas progressivas;
+- avisos automáticos sobre água, treino e refeições pendentes.
+
+A pontuação é calculada diretamente a partir dos registros sincronizados da conta. A etapa social posterior usará essa base para o ranking entre amigos.
+
 Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável no celular.
 
 ## Arquivos

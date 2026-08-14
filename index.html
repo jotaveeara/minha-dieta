@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 
-<link rel="stylesheet" href="style.css?v=30">
+<link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
 
@@ -224,6 +224,29 @@
         <span class="mc-value"><b id="agua-atual">0,0</b><i>/ <span id="agua-meta">3,0</span> L</i></span>
         <div class="mc-bar"><div class="mc-bar-fill" id="agua-bar"></div></div>
       </div>
+    </section>
+
+    <section class="performance-card" id="performance-card">
+      <div class="performance-head">
+        <div><span>SEU DESEMPENHO</span><b id="performance-level">Nível 1</b></div>
+        <strong id="performance-total">0 pontos</strong>
+      </div>
+      <div class="performance-level-bar"><div id="performance-level-fill"></div></div>
+      <small class="performance-next" id="performance-next">Faltam 300 pontos para o próximo nível.</small>
+      <div class="performance-metrics">
+        <div><b id="performance-week">0</b><span>pontos na semana</span></div>
+        <div><b id="performance-streak">0 dias</b><span>sequência atual</span></div>
+        <div><b id="performance-today">0</b><span>pontos hoje</span></div>
+      </div>
+      <p class="performance-insight" id="performance-insight">Registre sua rotina para receber um resumo.</p>
+      <div class="achievement-list" id="achievement-list"></div>
+      <details class="performance-rules">
+        <summary>Como ganhar pontos</summary>
+        <div><span>Meta diária de água</span><b>+20</b></div>
+        <div><span>Cada refeição concluída</span><b>+5</b></div>
+        <div><span>Treino concluído</span><b>+30</b></div>
+        <div><span>Primeiro registro de evolução na semana</span><b>+10</b></div>
+      </details>
     </section>
 
     <section class="today-diet-summary" id="today-diet-summary" hidden>
@@ -566,7 +589,7 @@
       <button class="btn-signout-danger" id="btn-signout">Sair da conta</button>
     </section>
 
-    <p class="app-version">Minha Dieta · v1.6</p>
+    <p class="app-version">Minha Dieta · v1.7</p>
   </main>
 
   <!-- ===================== BOTTOM NAV ===================== -->
@@ -855,9 +878,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js"></script>
-<script src="supabase-config.js?v=30"></script>
-<script src="food-data.js?v=30"></script>
-<script src="script.js?v=30"></script>
-<script src="auth.js?v=30"></script>
+<script src="supabase-config.js?v=31"></script>
+<script src="food-data.js?v=31"></script>
+<script src="script.js?v=31"></script>
+<script src="auth.js?v=31"></script>
 </body>
 </html>

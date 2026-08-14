@@ -1,0 +1,34 @@
+ETAPA 8 — GAMIFICAÇÃO E DESEMPENHO
+
+O que foi incluído na tela Hoje:
+- pontos totais da conta;
+- pontos conquistados na semana;
+- pontos conquistados no dia;
+- nível atual e progresso para o próximo nível;
+- sequência de dias ativos;
+- conquistas desbloqueáveis;
+- avisos automáticos de água, treino e refeições.
+
+REGRAS DE PONTUAÇÃO
+
+- Meta diária de água: 20 pontos.
+- Cada refeição concluída: 5 pontos, com limite de 20 por dia.
+- Treino concluído: 30 pontos.
+- Primeiro registro de peso/medidas da semana: 10 pontos.
+- Cada nível exige 300 pontos.
+
+A pontuação é calculada automaticamente a partir dos registros da conta. Abrir a página novamente não duplica os pontos.
+
+A competição entre amigos ainda não está nesta versão. Esta etapa criou a base que será usada no ranking social posteriormente.
+
+COMO PUBLICAR
+
+1. Abra o repositório minha-dieta no GitHub.
+2. Clique em Add file e depois Upload files.
+3. Envie TODOS os arquivos deste pacote.
+4. Confirme a substituição dos arquivos existentes.
+5. Faça o commit diretamente na branch main.
+6. Aguarde o GitHub Pages ficar verde.
+7. Feche e abra novamente o aplicativo. Se aparecer a versão antiga, remova o atalho instalado e instale novamente.
+
+Não é necessário executar código SQL no Supabase.
