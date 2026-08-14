@@ -1,0 +1,23 @@
+ATUALIZAÇÃO — EXCLUIR PLANO DE TREINO
+
+Foi adicionado um botão vermelho no final da aba Treino.
+
+Ao confirmar a exclusão, o aplicativo:
+- apaga o plano de treino atual;
+- remove os dias de treino programados;
+- limpa somente as marcações de treino concluído;
+- devolve a aba Treino ao estado inicial;
+- mantém perfil, dieta, alimentação, peso, medidas e evolução.
+
+Arquivos PDF/DOCX enviados continuam disponíveis na área Perfil. Caso queira excluir também o arquivo original, use o botão Excluir ao lado do documento.
+
+COMO PUBLICAR
+
+1. Abra o repositório minha-dieta no GitHub.
+2. Clique em Add file e depois Upload files.
+3. Envie todos os arquivos deste pacote.
+4. Confirme o commit diretamente na branch main.
+5. Aguarde o GitHub Pages ficar verde.
+6. Feche e abra novamente o aplicativo no celular.
+
+Não é necessário executar código SQL no Supabase.

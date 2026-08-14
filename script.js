@@ -1806,7 +1806,28 @@ function renderTreino() {
     empty.textContent = "Nenhum dia de treino selecionado.";
     weekBox.appendChild(empty);
   }
+  const hasWorkoutPlan = Object.keys(state.workoutPlan?.days || {}).length > 0;
+  const hasTrainingDays = (state.customRoutine?.trainingDays || []).length > 0;
+  document.getElementById("training-reset-area").hidden = !hasWorkoutPlan && !hasTrainingDays;
 }
+
+document.getElementById("btn-reset-workout-plan").addEventListener("click", async () => {
+  const confirmed = window.confirm(
+    "Excluir o plano de treino atual e remover todos os dias programados? Seu perfil, dieta e evolução serão mantidos."
+  );
+  if (!confirmed) return;
+  state.workoutPlan = structuredCloneSafe(DEFAULT_STATE.workoutPlan);
+  state.customRoutine.trainingDays = [];
+  Object.values(state.completions || {}).forEach(day => {
+    if (day && typeof day === "object") delete day.treino;
+  });
+  saveState();
+  if (window.persistRoutineConfig) await window.persistRoutineConfig(state.customRoutine);
+  renderTreino();
+  renderSemana();
+  renderHoje();
+  showToast("Plano de treino excluído. A aba foi reiniciada.");
+});
 
 /* ---------------------------------------------------------
    17A. GERADOR DE PLANO DE TREINO-BASE

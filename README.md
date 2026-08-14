@@ -10,6 +10,10 @@
 
 Os valores da base local usam principalmente a TACO/NEPA-Unicamp. Itens marcados como estimativa e produtos industrializados devem ser conferidos no rótulo.
 
+## Controle do plano de treino
+
+A aba Treino possui a opção **Excluir plano de treino**. Após confirmação, ela remove o plano atual, os dias programados e as marcações de treino concluído, mantendo perfil, dieta, refeições e evolução.
+
 Aplicativo multiusuário de dieta, treino e evolução física. PWA instalável no celular.
 
 ## Arquivos

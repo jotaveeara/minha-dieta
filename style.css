@@ -195,6 +195,9 @@ button, input, select, textarea {
 .training-day-card > div span { color: var(--coral); font-size: 12px; font-weight: 700; text-align: right; }
 .training-day-card .training-exercises { margin: 12px; }
 .training-card-edit { margin: 0 12px 12px; width: calc(100% - 24px); padding: 9px; border-radius: 9px; border: 1px solid var(--surface-border); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 700; }
+.training-reset-area { display: flex; flex-direction: column; gap: 7px; margin-top: 24px; padding: 16px; border: 1px solid rgba(232,87,74,.3); border-radius: var(--radius-lg); background: rgba(232,87,74,.05); }
+.training-reset-area b { color: var(--text); font-size: 14px; }
+.training-reset-area span { margin-bottom: 5px; color: var(--text-muted); font-size: 12.5px; line-height: 1.45; }
 .workout-editor-sheet { max-height: 92vh; overflow-y: auto; }
 .editor-help { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; margin: 5px 0 15px; }
 .workout-editor-sheet textarea { min-height: 190px; }
